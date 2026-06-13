@@ -1,0 +1,824 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="My Profile — AI Job Tracker">
+  <div class="min-h-screen bg-canvas-soft text-ink font-geist flex flex-col">
+    <!-- Navbar -->
+    <header class="sticky top-0 z-40 bg-canvas border-b border-hairline backdrop-blur-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-6">
+          <a href="/dashboard" class="text-xl font-bold tracking-tight text-ink flex items-center gap-2">
+            <span class="text-on-primary bg-primary px-2 py-0.5 rounded-sm font-mono text-sm">AI</span>
+            Job Tracker
+          </a>
+          <nav class="flex items-center gap-4">
+            <a href="/dashboard" class="text-xs font-medium text-body-text hover:text-ink transition-all">Pipeline</a>
+            <a href="/dashboard/analytics" class="text-xs font-medium text-body-text hover:text-ink transition-all">Analytics</a>
+            <a href="/dashboard/profile" class="text-xs font-semibold text-ink border-b-2 border-primary py-5 -mb-5 transition-all">Profile</a>
+          </nav>
+        </div>
+        <div class="flex items-center gap-4">
+          <!-- Theme Toggle Button -->
+          <button
+            id="theme-toggle-btn"
+            class="h-8 w-8 flex items-center justify-center border border-hairline rounded-sm text-xs font-medium hover:bg-canvas-soft-2 transition-all cursor-pointer text-ink"
+            aria-label="Toggle Theme"
+          >
+            <svg class="h-4 w-4 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+            <svg class="h-4 w-4 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+            </svg>
+          </button>
+          <div class="text-right hidden sm:block">
+            <p class="text-xs font-semibold text-ink" id="profile-name">Loading Profile...</p>
+            <p class="text-[10px] text-mute-text" id="profile-email">loading@user.com</p>
+          </div>
+          <button
+            id="signout-btn"
+            class="h-8 px-3 border border-hairline rounded-sm text-xs font-medium hover:bg-canvas-soft-2 transition-all cursor-pointer"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Workspace Content -->
+    <main class="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 relative">
+      <!-- Loading Overlay -->
+      <div id="page-loading-overlay" class="absolute inset-0 bg-canvas-soft/80 z-30 flex flex-col items-center justify-center space-y-3 hidden">
+        <svg class="animate-spin h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p class="text-xs font-semibold text-ink" id="loading-overlay-text">AI is reading the resume...</p>
+      </div>
+
+      <div class="space-y-8">
+        <div>
+          <h2 class="text-xl font-bold tracking-tight text-ink">My Profile</h2>
+          <p class="text-xs text-body-text mt-1">Manage personal metrics, resumes, and core skills.</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          <!-- Left Column: Avatar & Basic Info Form (lg:col-span-7) -->
+          <div class="lg:col-span-7 space-y-6">
+            <div class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-6">
+              <h3 class="text-sm font-semibold tracking-tight text-ink border-b border-hairline pb-2">
+                Basic Account Information
+              </h3>
+              
+              <!-- Avatar Upload Row -->
+              <div class="flex items-center gap-6">
+                <div class="relative h-20 w-20 flex-shrink-0">
+                  <img
+                    id="avatar-preview"
+                    class="h-20 w-20 rounded-full border border-hairline object-cover bg-white hidden"
+                    src=""
+                    alt="User Avatar"
+                  />
+                  <div
+                    id="avatar-fallback"
+                    class="h-20 w-20 rounded-full bg-primary text-on-primary text-3xl font-bold flex items-center justify-center uppercase"
+                  >
+                    U
+                  </div>
+                </div>
+                <div class="space-y-2">
+                  <label class="block text-xs font-semibold text-body-text">Avatar Image</label>
+                  <div class="flex items-center gap-3">
+                    <input type="file" id="avatar-input" accept="image/*" class="hidden" />
+                    <button
+                      type="button"
+                      id="upload-avatar-btn"
+                      class="h-8 px-4 border border-hairline rounded-sm text-xs font-medium hover:bg-canvas-soft-2 cursor-pointer transition-all"
+                    >
+                      Choose Photo
+                    </button>
+                    <span class="text-[10px] text-mute-text">PNG, JPG, or WEBP up to 2MB.</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Form fields -->
+              <form id="profile-info-form" class="space-y-4" novalidate>
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label for="fullName" class="block text-xs font-semibold text-body-text">Full Name</label>
+                    <input type="text" id="fullName" required class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none focus:border-hairline-strong transition-all" />
+                  </div>
+                  <div>
+                    <label for="emailAddress" class="block text-xs font-semibold text-body-text">Email Address</label>
+                    <input type="email" id="emailAddress" readonly class="mt-1 block w-full h-9 px-2.5 bg-canvas-soft border border-hairline rounded-sm text-sm text-mute-text focus:outline-none select-all" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label for="targetRole" class="block text-xs font-semibold text-body-text">Target Job Role</label>
+                    <input type="text" id="targetRole" placeholder="e.g. Senior React Developer" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none focus:border-hairline-strong transition-all" />
+                  </div>
+                  <div>
+                    <label for="locationPreference" class="block text-xs font-semibold text-body-text">Location Preference</label>
+                    <input type="text" id="locationPreference" placeholder="e.g. Remote / San Francisco, CA" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none focus:border-hairline-strong transition-all" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 border-t border-hairline pt-4">
+                  <div>
+                    <label for="targetSalaryMin" class="block text-xs font-semibold text-body-text">Target Salary Min (Annual)</label>
+                    <input type="number" id="targetSalaryMin" placeholder="e.g. 100000" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none focus:border-hairline-strong transition-all" />
+                  </div>
+                  <div>
+                    <label for="targetSalaryMax" class="block text-xs font-semibold text-body-text">Target Salary Max (Annual)</label>
+                    <input type="number" id="targetSalaryMax" placeholder="e.g. 150000" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none focus:border-hairline-strong transition-all" />
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <!-- Skills Manager Panel -->
+            <div class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-4">
+              <h3 class="text-sm font-semibold tracking-tight text-ink border-b border-hairline pb-2">
+                My Skills Profile
+              </h3>
+              <p class="text-xs text-mute-text leading-relaxed">
+                Add skills manually or extract them automatically from your resume PDF. These core competencies will drive your Gemini Match Scores on the applications board.
+              </p>
+
+              <!-- Tags container -->
+              <div id="skills-tags-container" class="flex flex-wrap gap-1.5 min-h-[40px] border border-hairline p-3 bg-canvas-soft rounded-sm">
+                <span class="text-xs text-mute-text italic select-none">No skills added yet.</span>
+              </div>
+
+              <!-- Input row -->
+              <div class="flex gap-2">
+                <input
+                  type="text"
+                  id="skill-tag-input"
+                  placeholder="Type a skill and hit Enter or click Add (e.g. React)"
+                  class="flex-1 h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-xs focus:outline-none focus:border-hairline-strong transition-all"
+                />
+                <button
+                  type="button"
+                  id="add-skill-tag-btn"
+                  class="h-9 px-4 bg-primary text-on-primary rounded-sm text-xs font-semibold hover:bg-primary/95 cursor-pointer transition-all"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Resume & AI Skill Extractor (lg:col-span-5) -->
+          <div class="lg:col-span-5 space-y-6">
+            
+            <!-- Resume Uploader Card -->
+            <div class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-4">
+              <h3 class="text-sm font-semibold tracking-tight text-ink border-b border-hairline pb-2">
+                Resume Setup
+              </h3>
+              
+              <div class="border border-dashed border-hairline p-6 rounded-md bg-canvas-soft flex flex-col items-center justify-center text-center space-y-3 relative group">
+                <svg class="h-10 w-10 text-mute-text" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <div class="space-y-1">
+                  <p class="text-xs font-semibold text-ink" id="resume-filename-display">No PDF resume attached</p>
+                  <p class="text-[10px] text-mute-text">Upload your current PDF resume profile.</p>
+                </div>
+                
+                <input type="file" id="resume-input" accept="application/pdf" class="hidden" />
+                <button
+                  type="button"
+                  id="upload-resume-btn"
+                  class="h-8 px-4 bg-primary text-on-primary rounded-full text-xs font-semibold hover:bg-primary/95 cursor-pointer transition-all shadow-sm"
+                >
+                  Upload PDF
+                </button>
+              </div>
+
+              <div class="flex justify-between items-center gap-2 pt-2">
+                <a
+                  href="#"
+                  target="_blank"
+                  id="view-resume-btn"
+                  class="h-8 px-4 border border-hairline rounded-sm text-xs font-medium hover:bg-canvas-soft-2 transition-all cursor-pointer flex items-center justify-center hidden"
+                >
+                  View Resume
+                </a>
+              </div>
+            </div>
+
+            <!-- AI Skill Extraction Panel (revealed after resume exists) -->
+            <div id="ai-extract-section" class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-4 hidden">
+              <h3 class="text-sm font-semibold tracking-tight text-ink border-b border-hairline pb-2 flex items-center gap-1.5">
+                <span class="text-on-primary bg-primary px-1.5 py-0.5 rounded-xs font-mono text-[10px]">AI</span>
+                Skills Extraction
+              </h3>
+              <p class="text-xs text-mute-text leading-relaxed">
+                Scan your PDF resume text using Gemini AI to automatically identify and extract core technologies and competencies.
+              </p>
+
+              <button
+                type="button"
+                id="ai-extract-btn"
+                class="w-full h-10 px-4 bg-primary text-on-primary rounded-full text-xs font-semibold hover:bg-primary/95 shadow-sm transition-all flex items-center justify-center cursor-pointer"
+              >
+                Extract Skills from Resume with AI
+              </button>
+
+              <!-- Suggestions container -->
+              <div id="ai-suggestions-box" class="hidden border border-hairline p-4 rounded-md bg-canvas-soft space-y-4">
+                <div>
+                  <h4 class="text-xs font-bold text-ink uppercase tracking-wider">Suggested Skills</h4>
+                  <p class="text-[10px] text-mute-text mt-0.5">Click any tag to add, or click add all.</p>
+                </div>
+
+                <div id="suggested-tags-container" class="flex flex-wrap gap-1.5 min-h-[30px]">
+                  <!-- Rendered suggested badges -->
+                </div>
+
+                <button
+                  type="button"
+                  id="add-all-suggestions-btn"
+                  class="w-full h-8 px-3 border border-primary text-link hover:bg-link/5 transition-all text-xs font-semibold rounded-sm cursor-pointer"
+                >
+                  Add All Suggested Skills
+                </button>
+              </div>
+            </div>
+
+            <!-- Bottom Master Actions -->
+            <div class="bg-canvas border border-hairline p-6 rounded-md shadow-sm flex flex-col gap-3">
+              <button
+                id="save-profile-btn"
+                class="w-full h-11 px-4 bg-primary text-on-primary rounded-full text-sm font-medium hover:bg-primary/95 shadow-sm transition-all flex items-center justify-center cursor-pointer"
+              >
+                Save Profile Configuration
+              </button>
+              <a
+                href="/dashboard"
+                class="w-full h-11 px-4 border border-hairline text-ink rounded-full text-sm font-medium hover:bg-canvas-soft-2 transition-all flex items-center justify-center cursor-pointer"
+              >
+                Back to Dashboard
+              </a>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+</Layout>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+
+  // State Variables
+  let currentUser: any = null;
+  let userProfile: any = null;
+  let skillsList: string[] = [];
+  let suggestedSkills: string[] = [];
+
+  // Storage Upload Cache
+  let avatarUrl: string = '';
+  let resumeUrl: string = '';
+  let resumeFileName: string = '';
+  let currentResumeFile: File | null = null;
+
+  // DOM Elements
+  const loadingOverlay = document.querySelector('#page-loading-overlay') as HTMLElement;
+  const loadingText = document.querySelector('#loading-overlay-text') as HTMLElement;
+
+  // Account Headers
+  const profileName = document.querySelector('#profile-name') as HTMLElement;
+  const profileEmail = document.querySelector('#profile-email') as HTMLElement;
+
+  // Basic Info Form
+  const avatarPreviewImg = document.querySelector('#avatar-preview') as HTMLImageElement;
+  const avatarFallback = document.querySelector('#avatar-fallback') as HTMLElement;
+  const avatarInput = document.querySelector('#avatar-input') as HTMLInputElement;
+  const uploadAvatarBtn = document.querySelector('#upload-avatar-btn') as HTMLButtonElement;
+
+  const fullNameInput = document.querySelector('#fullName') as HTMLInputElement;
+  const emailAddressInput = document.querySelector('#emailAddress') as HTMLInputElement;
+  const targetRoleInput = document.querySelector('#targetRole') as HTMLInputElement;
+  const locationPreferenceInput = document.querySelector('#locationPreference') as HTMLInputElement;
+  const targetSalaryMinInput = document.querySelector('#targetSalaryMin') as HTMLInputElement;
+  const targetSalaryMaxInput = document.querySelector('#targetSalaryMax') as HTMLInputElement;
+
+  // Skills tags
+  const skillsTagsContainer = document.querySelector('#skills-tags-container') as HTMLElement;
+  const skillTagInput = document.querySelector('#skill-tag-input') as HTMLInputElement;
+  const addSkillTagBtn = document.querySelector('#add-skill-tag-btn') as HTMLButtonElement;
+
+  // Resume Setup
+  const resumeInput = document.querySelector('#resume-input') as HTMLInputElement;
+  const uploadResumeBtn = document.querySelector('#upload-resume-btn') as HTMLButtonElement;
+  const resumeFilenameDisplay = document.querySelector('#resume-filename-display') as HTMLElement;
+  const viewResumeBtn = document.querySelector('#view-resume-btn') as HTMLAnchorElement;
+
+  // AI Skills Extractions
+  const aiExtractSection = document.querySelector('#ai-extract-section') as HTMLElement;
+  const aiExtractBtn = document.querySelector('#ai-extract-btn') as HTMLButtonElement;
+  const aiSuggestionsBox = document.querySelector('#ai-suggestions-box') as HTMLElement;
+  const suggestedTagsContainer = document.querySelector('#suggested-tags-container') as HTMLElement;
+  const addAllSuggestionsBtn = document.querySelector('#add-all-suggestions-btn') as HTMLButtonElement;
+
+  // Save changes
+  const saveProfileBtn = document.querySelector('#save-profile-btn') as HTMLButtonElement;
+
+  // Initialize profile page
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Corner Theme Toggler Link setup
+    document.querySelector('#theme-toggle-btn')?.addEventListener('click', () => {
+      (window as any).toggleTheme();
+    });
+
+    // 1. Authenticate user
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.href = '/login';
+      return;
+    }
+    currentUser = session.user;
+
+    // 2. Fetch User Profile
+    await loadUserProfile();
+
+    // 3. Set up listeners
+    setupEventListeners();
+  });
+
+  // Inline Validation Helpers
+  function setValidationError(inputEl: HTMLInputElement | HTMLTextAreaElement, message: string) {
+    clearValidationError(inputEl);
+    inputEl.classList.add('border-error-deep', 'focus:border-error-deep', 'focus:ring-error-deep');
+    const errEl = document.createElement('p');
+    errEl.className = 'mt-1 text-xs text-error-deep font-medium inline-validation-error';
+    errEl.textContent = message;
+    inputEl.parentElement?.appendChild(errEl);
+  }
+
+  function clearValidationError(inputEl: HTMLInputElement | HTMLTextAreaElement) {
+    inputEl.classList.remove('border-error-deep', 'focus:border-error-deep', 'focus:ring-error-deep');
+    const parent = inputEl.parentElement;
+    if (parent) {
+      const existing = parent.querySelector('.inline-validation-error');
+      if (existing) existing.remove();
+    }
+  }
+
+  // Fetch profiles table details
+  async function loadUserProfile() {
+    try {
+      showOverlay('Retrieving account information...');
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      if (data) {
+        userProfile = data;
+      } else {
+        const { data: inserted, error: insError } = await supabase
+          .from('profiles')
+          .insert({
+            id: currentUser.id,
+            email: currentUser.email,
+            full_name: currentUser.user_metadata?.full_name || 'Guest User'
+          })
+          .select()
+          .single();
+        if (insError) throw insError;
+        userProfile = inserted;
+      }
+
+      // Populate Inputs
+      if (profileName) profileName.textContent = userProfile.full_name || 'Guest User';
+      if (profileEmail) profileEmail.textContent = userProfile.email || currentUser.email;
+
+      if (fullNameInput) fullNameInput.value = userProfile.full_name || '';
+      if (emailAddressInput) emailAddressInput.value = userProfile.email || currentUser.email;
+      if (targetRoleInput) targetRoleInput.value = userProfile.target_role || '';
+      if (locationPreferenceInput) locationPreferenceInput.value = userProfile.location_preference || '';
+      if (targetSalaryMinInput) targetSalaryMinInput.value = userProfile.target_salary_min || '';
+      if (targetSalaryMaxInput) targetSalaryMaxInput.value = userProfile.target_salary_max || '';
+
+      skillsList = userProfile.skills || [];
+      renderSkillsTags();
+
+      if (userProfile.avatar_url) {
+        avatarUrl = userProfile.avatar_url;
+        if (avatarPreviewImg) {
+          avatarPreviewImg.src = userProfile.avatar_url;
+          avatarPreviewImg.classList.remove('hidden');
+        }
+        if (avatarFallback) {
+          avatarFallback.classList.add('hidden');
+        }
+      } else {
+        if (avatarFallback) {
+          const initials = (userProfile.full_name || 'U')
+            .split(' ')
+            .map((n: string) => n.charAt(0))
+            .join('')
+            .slice(0, 2);
+          avatarFallback.textContent = initials;
+        }
+      }
+
+      if (userProfile.resume_url) {
+        resumeUrl = userProfile.resume_url;
+        
+        try {
+          const decodedUrl = decodeURIComponent(userProfile.resume_url);
+          const parts = decodedUrl.split('/');
+          resumeFileName = parts[parts.length - 1].split('?')[0] || 'resume.pdf';
+        } catch {
+          resumeFileName = 'resume.pdf';
+        }
+
+        if (resumeFilenameDisplay) resumeFilenameDisplay.textContent = resumeFileName;
+        if (viewResumeBtn) {
+          viewResumeBtn.href = userProfile.resume_url;
+          viewResumeBtn.classList.remove('hidden');
+        }
+        if (aiExtractSection) aiExtractSection.classList.remove('hidden');
+      }
+
+    } catch (err: any) {
+      console.error('Error loading user profile:', err);
+      if ((window as any).showToast) (window as any).showToast(err.message || 'Error loading profile details.', 'error');
+    } finally {
+      hideOverlay();
+    }
+  }
+
+  // Setup UI components listeners
+  function setupEventListeners() {
+    fullNameInput?.addEventListener('input', () => clearValidationError(fullNameInput));
+    targetSalaryMinInput?.addEventListener('input', () => clearValidationError(targetSalaryMinInput));
+    targetSalaryMaxInput?.addEventListener('input', () => clearValidationError(targetSalaryMaxInput));
+
+    uploadAvatarBtn?.addEventListener('click', () => avatarInput?.click());
+    avatarInput?.addEventListener('change', async (e: any) => {
+      const file = e.target.files?.[0];
+      if (file) await handleAvatarUpload(file);
+    });
+
+    uploadResumeBtn?.addEventListener('click', () => resumeInput?.click());
+    resumeInput?.addEventListener('change', async (e: any) => {
+      const file = e.target.files?.[0];
+      if (file) await handleResumeUpload(file);
+    });
+
+    addSkillTagBtn?.addEventListener('click', addManualSkillTag);
+    skillTagInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addManualSkillTag();
+      }
+    });
+
+    aiExtractBtn?.addEventListener('click', handleAiSkillExtraction);
+    addAllSuggestionsBtn?.addEventListener('click', addAllSuggestedSkills);
+    saveProfileBtn?.addEventListener('click', handleSaveProfile);
+
+    const signoutBtn = document.querySelector('#signout-btn') as HTMLButtonElement;
+    signoutBtn?.addEventListener('click', async () => {
+      const { error } = await supabase.auth.signOut();
+      if (!error) window.location.href = '/login';
+    });
+  }
+
+  function renderSkillsTags() {
+    if (!skillsTagsContainer) return;
+    skillsTagsContainer.innerHTML = '';
+
+    if (skillsList.length === 0) {
+      skillsTagsContainer.innerHTML = '<span class="text-xs text-mute-text italic select-none">No skills added yet.</span>';
+      return;
+    }
+
+    skillsList.forEach((skill) => {
+      const tag = document.createElement('span');
+      tag.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/5 border border-primary/10 text-primary flex items-center gap-1.5 transition-all select-none hover:bg-red-50 hover:text-red-700 hover:border-red-200';
+      tag.innerHTML = `
+        ${skill}
+        <button type="button" class="remove-skill-btn focus:outline-none cursor-pointer text-[10px] opacity-60 hover:opacity-100 font-mono font-bold" data-skill="${skill}">✕</button>
+      `;
+
+      tag.querySelector('.remove-skill-btn')?.addEventListener('click', (e: any) => {
+        const toRemove = e.target.getAttribute('data-skill');
+        skillsList = skillsList.filter(s => s !== toRemove);
+        renderSkillsTags();
+      });
+
+      skillsTagsContainer.appendChild(tag);
+    });
+  }
+
+  function addManualSkillTag() {
+    const val = skillTagInput?.value.trim();
+    if (!val) return;
+
+    const items = val.split(',').map(i => i.trim()).filter(i => i.length > 0);
+    items.forEach(item => {
+      if (!skillsList.includes(item)) {
+        skillsList.push(item);
+      }
+    });
+
+    if (skillTagInput) skillTagInput.value = '';
+    renderSkillsTags();
+  }
+
+  async function handleAvatarUpload(file: File) {
+    if (!file) return;
+    
+    if (file.size > 2 * 1024 * 1024) {
+      if ((window as any).showToast) (window as any).showToast('Avatar size must be smaller than 2MB.', 'error');
+      return;
+    }
+
+    showOverlay('Uploading avatar image...');
+    
+    try {
+      const ext = file.name.split('.').pop() || 'png';
+      const filePath = `${currentUser.id}/avatar-${Date.now()}.${ext}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadErr) throw uploadErr;
+
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      avatarUrl = data.publicUrl;
+
+      if (avatarPreviewImg) {
+        avatarPreviewImg.src = data.publicUrl;
+        avatarPreviewImg.classList.remove('hidden');
+      }
+      if (avatarFallback) {
+        avatarFallback.classList.add('hidden');
+      }
+
+      if ((window as any).showToast) (window as any).showToast('Avatar updated successfully.', 'success');
+
+    } catch (err: any) {
+      if ((window as any).showToast) (window as any).showToast(err.message || 'Failed to upload avatar image.', 'error');
+    } finally {
+      hideOverlay();
+    }
+  }
+
+  async function handleResumeUpload(file: File) {
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      if ((window as any).showToast) (window as any).showToast('Please upload a valid PDF document.', 'error');
+      return;
+    }
+
+    showOverlay('Uploading resume PDF...');
+    currentResumeFile = file;
+
+    try {
+      const filePath = `${currentUser.id}/resume-${Date.now()}.pdf`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from('resumes')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadErr) throw uploadErr;
+
+      const { data } = supabase.storage
+        .from('resumes')
+        .getPublicUrl(filePath);
+
+      resumeUrl = data.publicUrl;
+      resumeFileName = file.name;
+
+      if (resumeFilenameDisplay) resumeFilenameDisplay.textContent = file.name;
+      if (viewResumeBtn) {
+        viewResumeBtn.href = data.publicUrl;
+        viewResumeBtn.classList.remove('hidden');
+      }
+      
+      if (aiExtractSection) aiExtractSection.classList.remove('hidden');
+      if ((window as any).showToast) (window as any).showToast('Resume uploaded successfully.', 'success');
+
+    } catch (err: any) {
+      if ((window as any).showToast) (window as any).showToast(err.message || 'Failed to upload resume PDF.', 'error');
+    } finally {
+      hideOverlay();
+    }
+  }
+
+  function fileToBase64(file: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64String = (reader.result as string).split(',')[1];
+        resolve(base64String);
+      };
+      reader.onerror = error => reject(error);
+    });
+  }
+
+  async function handleAiSkillExtraction() {
+    let base64 = '';
+
+    showOverlay('Gemini is analyzing resume text...');
+
+    try {
+      if (currentResumeFile) {
+        base64 = await fileToBase64(currentResumeFile);
+      } else if (resumeUrl) {
+        const res = await fetch(resumeUrl);
+        const blob = await res.blob();
+        base64 = await fileToBase64(blob);
+      } else {
+        if ((window as any).showToast) (window as any).showToast('Please attach or upload a resume PDF first.', 'error');
+        return;
+      }
+
+      const res = await fetch('/api/extract-skills', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeBase64: base64 })
+      });
+
+      const result = await res.json();
+      if (!res.ok || !result || result.error) throw new Error(result?.error || 'AI analysis failed, please try again');
+
+      suggestedSkills = result.skills || [];
+      renderSuggestedSkills();
+      if ((window as any).showToast) (window as any).showToast('Skills extracted successfully.', 'success');
+
+    } catch (err: any) {
+      const msg = err.message || 'AI analysis failed, please try again';
+      if ((window as any).showToast) (window as any).showToast(msg, 'error');
+    } finally {
+      hideOverlay();
+    }
+  }
+
+  function renderSuggestedSkills() {
+    if (!suggestedTagsContainer) return;
+    suggestedTagsContainer.innerHTML = '';
+
+    const unadded = suggestedSkills.filter(s => !skillsList.includes(s));
+
+    if (unadded.length === 0) {
+      suggestedTagsContainer.innerHTML = '<span class="text-[11px] text-mute-text italic py-2.5">No new skills suggested from this scan.</span>';
+      aiSuggestionsBox?.classList.remove('hidden');
+      return;
+    }
+
+    unadded.forEach(skill => {
+      const badge = document.createElement('button');
+      badge.type = 'button';
+      badge.className = 'text-xs font-medium px-2 py-0.5 rounded-sm bg-link-bg-soft text-link-deep border border-link/15 cursor-pointer transition-all hover:bg-link hover:text-on-primary';
+      badge.textContent = `+ ${skill}`;
+
+      badge.addEventListener('click', () => {
+        if (!skillsList.includes(skill)) {
+          skillsList.push(skill);
+          renderSkillsTags();
+        }
+        badge.remove();
+        
+        if (suggestedTagsContainer.children.length === 0) {
+          suggestedTagsContainer.innerHTML = '<span class="text-[11px] text-mute-text italic py-2.5">All suggested skills added.</span>';
+        }
+      });
+
+      suggestedTagsContainer.appendChild(badge);
+    });
+
+    aiSuggestionsBox?.classList.remove('hidden');
+  }
+
+  function addAllSuggestedSkills() {
+    suggestedSkills.forEach(skill => {
+      if (!skillsList.includes(skill)) {
+        skillsList.push(skill);
+      }
+    });
+
+    renderSkillsTags();
+    
+    if (suggestedTagsContainer) {
+      suggestedTagsContainer.innerHTML = '<span class="text-[11px] text-mute-text italic py-2.5">All suggested skills added.</span>';
+    }
+  }
+
+  async function handleSaveProfile() {
+    const fullName = fullNameInput?.value.trim();
+    
+    // Clear validation borders
+    clearValidationError(fullNameInput);
+    clearValidationError(targetSalaryMinInput);
+    clearValidationError(targetSalaryMaxInput);
+
+    let hasError = false;
+    if (!fullName) {
+      setValidationError(fullNameInput, 'Full Name is required.');
+      hasError = true;
+    }
+
+    const targetRole = targetRoleInput?.value.trim() || null;
+    const locationPreference = locationPreferenceInput?.value.trim() || null;
+    const salaryMin = targetSalaryMinInput?.value ? Number(targetSalaryMinInput.value) : null;
+    const salaryMax = targetSalaryMaxInput?.value ? Number(targetSalaryMaxInput.value) : null;
+
+    if (salaryMin !== null && salaryMin < 0) {
+      setValidationError(targetSalaryMinInput, 'Min salary cannot be negative.');
+      hasError = true;
+    }
+    if (salaryMax !== null && salaryMax < 0) {
+      setValidationError(targetSalaryMaxInput, 'Max salary cannot be negative.');
+      hasError = true;
+    }
+    if (salaryMin !== null && salaryMax !== null && salaryMax < salaryMin) {
+      setValidationError(targetSalaryMaxInput, 'Maximum salary cannot be less than minimum.');
+      hasError = true;
+    }
+
+    if (hasError) return;
+
+    showOverlay('Saving profile configurations...');
+
+    try {
+      const payload: any = {
+        id: currentUser.id,
+        full_name: fullName,
+        email: currentUser.email,
+        avatar_url: avatarUrl || null,
+        resume_url: resumeUrl || null,
+        skills: skillsList,
+        target_role: targetRole,
+        location_preference: locationPreference,
+        target_salary_min: salaryMin,
+        target_salary_max: salaryMax
+      };
+
+      let { error } = await supabase
+        .from('profiles')
+        .upsert(payload);
+
+      if (error && (error.message?.includes('location_preference') || String(error.details || '').includes('location_preference'))) {
+        console.warn('location_preference column not found, retrying without it...');
+        delete payload.location_preference;
+        const retryResult = await supabase
+          .from('profiles')
+          .upsert(payload);
+        error = retryResult.error;
+      }
+
+      if (error) throw error;
+
+      if ((window as any).showToast) (window as any).showToast('Profile updated successfully.', 'success');
+
+      // Delay redirect to let toast and animations render beautifully
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 800);
+
+    } catch (err: any) {
+      if ((window as any).showToast) (window as any).showToast(err.message || 'Failed to save profile details.', 'error');
+      hideOverlay();
+    }
+  }
+
+  function showOverlay(text: string) {
+    if (loadingText) loadingText.textContent = text;
+    loadingOverlay?.classList.remove('hidden');
+  }
+
+  function hideOverlay() {
+    loadingOverlay?.classList.add('hidden');
+  }
+</script>

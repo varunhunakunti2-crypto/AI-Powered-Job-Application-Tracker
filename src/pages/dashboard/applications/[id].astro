@@ -1,0 +1,1540 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+
+// In Astro static mode, getStaticPaths is required to compile parameter routes.
+// We provide a dummy path for compilation, and parse any dynamic UUID on the client.
+export function getStaticPaths() {
+  return [
+    { params: { id: 'placeholder' } }
+  ];
+}
+
+const { id } = Astro.params;
+---
+
+<Layout title="Application Details — AI Job Tracker">
+  <div class="min-h-screen bg-canvas-soft text-ink font-geist flex flex-col">
+    <!-- Top Nav bar -->
+    <header class="sticky top-0 z-40 bg-canvas border-b border-hairline backdrop-blur-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <a href="/dashboard" class="flex items-center gap-2 text-xs font-semibold text-body-text hover:text-ink transition-all">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Pipeline
+          </a>
+        </div>
+        <span class="text-sm font-semibold text-ink">Application Detail Profile</span>
+        <div class="flex items-center gap-3">
+          <!-- Theme Toggle Button -->
+          <button
+            id="theme-toggle-btn"
+            class="h-8 w-8 flex items-center justify-center border border-hairline rounded-sm text-xs font-medium hover:bg-canvas-soft-2 transition-all cursor-pointer text-ink"
+            aria-label="Toggle Theme"
+          >
+            <svg class="h-4 w-4 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+            <svg class="h-4 w-4 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Global Loading indicator -->
+    <div id="detail-page-loading" class="flex-1 flex flex-col items-center justify-center py-24 space-y-4">
+      <svg class="animate-spin h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <p class="text-xs font-semibold text-body-text animate-pulse">Retrieving application details from database...</p>
+    </div>
+
+    <!-- Main Workspace Content (Revealed after fetch) -->
+    <div id="detail-page-content" class="hidden flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      
+      <!-- 1. Header Section -->
+      <div class="bg-canvas border border-hairline p-6 rounded-md shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div class="flex items-center gap-4">
+          <!-- Logo & Fallback badge -->
+          <div class="relative h-14 w-14 flex-shrink-0">
+            <img
+              id="company-logo"
+              class="h-14 w-14 rounded-md border border-hairline object-contain bg-white"
+              src=""
+              alt="Company Logo"
+            />
+            <div
+              id="logo-fallback"
+              class="h-14 w-14 rounded-md bg-primary text-on-primary text-2xl font-bold flex items-center justify-center uppercase"
+            >
+              -
+            </div>
+          </div>
+
+          <div>
+            <h1 class="text-xl font-bold tracking-tight text-ink" id="header-title">Job Title</h1>
+            <p class="text-sm font-medium text-body-text mt-0.5" id="header-company-location">Company • Location</p>
+            <div class="flex items-center gap-4 mt-2">
+              <span class="text-xs text-mute-text" id="header-applied-date">Applied: -</span>
+              <!-- Score Badge -->
+              <span id="header-score-badge" class="hidden text-[10px] font-bold px-2 py-0.5 rounded-full border">0% Match</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status Change Dropdown -->
+        <div class="flex flex-col gap-1.5 md:w-48">
+          <label for="header-status-select" class="text-[10px] font-mono uppercase tracking-wider text-mute-text">Current Pipeline Status</label>
+          <select
+            id="header-status-select"
+            class="h-10 px-3 bg-canvas border border-hairline rounded-sm text-xs focus:outline-none focus:border-hairline-strong transition-all cursor-pointer"
+          >
+            <option value="saved">Saved</option>
+            <option value="applied">Applied</option>
+            <option value="interview">Interview</option>
+            <option value="offer">Offer</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Main Layout Columns -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- Left: Details & Tabs (lg:col-span-8) -->
+        <div class="lg:col-span-8 space-y-6">
+          
+          <!-- Tab Navigation buttons -->
+          <div class="border-b border-hairline flex gap-6 overflow-x-auto">
+            <button id="tab-btn-overview" class="pb-3 text-xs font-semibold text-ink border-b-2 border-primary transition-all cursor-pointer">
+              Overview
+            </button>
+            <button id="tab-btn-cover" class="pb-3 text-xs font-semibold text-mute-text hover:text-ink transition-all cursor-pointer">
+              Cover Letter
+            </button>
+            <button id="tab-btn-interviews" class="pb-3 text-xs font-semibold text-mute-text hover:text-ink transition-all cursor-pointer">
+              Interviews (<span id="tab-interviews-count">0</span>)
+            </button>
+            <button id="tab-btn-aiprep" class="pb-3 text-xs font-semibold text-mute-text hover:text-ink transition-all cursor-pointer flex items-center gap-1">
+              <span class="text-on-primary bg-primary px-1 py-0.2 rounded-xs font-mono text-[8px]">AI</span>
+              Prep Coach
+            </button>
+          </div>
+
+          <!-- TAB CONTENT PANELS -->
+
+          <!-- Panel 1: Overview -->
+          <div id="panel-overview" class="space-y-6">
+            <div class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-3">
+              <h3 class="text-xs font-mono uppercase tracking-wider text-mute-text">AI Match Analysis</h3>
+              <p class="text-xs text-body-text leading-relaxed" id="overview-ai-summary">
+                No AI summary available. Paste a job description and click edit to evaluate this job description.
+              </p>
+            </div>
+
+            <div class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-3">
+              <h3 class="text-xs font-mono uppercase tracking-wider text-mute-text">Job Description</h3>
+              <div class="text-xs text-body-text leading-relaxed whitespace-pre-wrap max-h-[400px] overflow-y-auto pr-2" id="overview-job-desc">
+                No description provided.
+              </div>
+            </div>
+
+            <div class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-3">
+              <h3 class="text-xs font-mono uppercase tracking-wider text-mute-text font-geist">My Notes</h3>
+              <p class="text-xs text-body-text leading-relaxed whitespace-pre-line" id="overview-notes">
+                No custom notes added. Click edit to record personal interview logs, tasks, and follow-ups.
+              </p>
+            </div>
+          </div>
+
+          <!-- Panel 2: Cover Letter -->
+          <div id="panel-cover" class="space-y-4 hidden">
+            <div class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-4">
+              <div class="flex justify-between items-center border-b border-hairline pb-3">
+                <h3 class="text-sm font-semibold text-ink">Custom AI Cover Letter</h3>
+                <button
+                  id="copy-cover-btn"
+                  class="h-7 px-3 border border-hairline text-ink rounded-sm text-[10px] font-medium hover:bg-canvas-soft-2 transition-all cursor-pointer"
+                >
+                  Copy Cover Letter
+                </button>
+              </div>
+
+              <!-- Cover letter empty state -->
+              <div id="cover-empty-state" class="text-center py-10 space-y-4">
+                <p class="text-xs text-mute-text">No cover letter has been generated for this application yet.</p>
+                <button
+                  id="generate-cover-btn"
+                  class="h-9 px-4 bg-primary text-on-primary rounded-full text-xs font-medium hover:bg-primary/95 transition-all cursor-pointer"
+                >
+                  Generate Cover Letter with Gemini AI
+                </button>
+              </div>
+
+              <!-- Cover letter Editor box -->
+              <div id="cover-editor-box" class="hidden space-y-4">
+                <textarea
+                  id="cover-content-textarea"
+                  rows="15"
+                  class="w-full p-4 text-xs bg-canvas-soft border border-hairline rounded-sm focus:outline-none focus:border-hairline-strong transition-all font-sans resize-y leading-relaxed"
+                ></textarea>
+                <div class="flex justify-between items-center">
+                  <span class="text-[10px] text-mute-text">Auto-saves local modifications to Supabase.</span>
+                  <button
+                    id="save-cover-btn"
+                    class="h-8 px-4 bg-primary text-on-primary rounded-full text-xs font-medium hover:bg-primary/95 transition-all cursor-pointer"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Panel 3: Interviews Timeline & Scheduler -->
+          <div id="panel-interviews" class="space-y-6 hidden">
+            <!-- Add Interview Trigger card -->
+            <div class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-4">
+              <div class="flex justify-between items-center">
+                <h3 class="text-sm font-semibold text-ink">Interview Timeline</h3>
+                <button
+                  id="show-interview-form-btn"
+                  class="h-8 px-3 border border-hairline rounded-sm text-xs font-medium hover:bg-canvas-soft-2 transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                  Schedule Interview
+                </button>
+              </div>
+
+              <!-- Interview Form (Toggle visible) -->
+              <form id="interview-form" class="mt-4 space-y-4 border border-hairline p-4 rounded-md bg-canvas-soft hidden">
+                <h4 class="text-xs font-bold text-ink uppercase tracking-wider">New Interview Details</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label for="interviewDate" class="block text-[10px] font-bold text-mute-text uppercase">Date & Time *</label>
+                    <input type="datetime-local" id="interviewDate" required class="mt-1 block w-full h-8 px-2 bg-canvas border border-hairline rounded-sm text-xs focus:outline-none" />
+                  </div>
+                  <div>
+                    <label for="interviewType" class="block text-[10px] font-bold text-mute-text uppercase">Type *</label>
+                    <select id="interviewType" required class="mt-1 block w-full h-8 px-2 bg-canvas border border-hairline rounded-sm text-xs focus:outline-none">
+                      <option value="phone">Phone Screen</option>
+                      <option value="video">Video Call</option>
+                      <option value="onsite">On-site</option>
+                      <option value="technical">Technical Panel</option>
+                      <option value="hr">HR Round</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label for="interviewerName" class="block text-[10px] font-bold text-mute-text uppercase">Interviewer Name</label>
+                    <input type="text" id="interviewerName" class="mt-1 block w-full h-8 px-2 bg-canvas border border-hairline rounded-sm text-xs focus:outline-none" placeholder="e.g. Sarah Jenkins" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label for="interviewNotes" class="block text-[10px] font-bold text-mute-text uppercase">Interview Prep / Notes</label>
+                    <textarea id="interviewNotes" rows="3" class="mt-1 block w-full p-2 bg-canvas border border-hairline rounded-sm text-xs focus:outline-none resize-none"></textarea>
+                  </div>
+                  <div>
+                    <label for="interviewOutcome" class="block text-[10px] font-bold text-mute-text uppercase">Current Outcome Status</label>
+                    <select id="interviewOutcome" class="mt-1 block w-full h-8 px-2 bg-canvas border border-hairline rounded-sm text-xs focus:outline-none">
+                      <option value="Scheduled" selected>Scheduled / Pending</option>
+                      <option value="Passed">Passed (Next Round)</option>
+                      <option value="Failed">Declined</option>
+                      <option value="Offer">Offer Issued</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="flex gap-2 justify-end">
+                  <button type="button" id="cancel-interview-btn" class="h-8 px-3 border border-hairline text-ink rounded-sm text-xs font-medium hover:bg-canvas-soft-2 cursor-pointer">
+                    Cancel
+                  </button>
+                  <button type="submit" id="save-interview-btn" class="h-8 px-4 bg-primary text-on-primary rounded-sm text-xs font-medium hover:bg-primary/95 cursor-pointer">
+                    Save Interview
+                  </button>
+                </div>
+              </form>
+
+              <!-- Interview List timeline -->
+              <div id="interviews-timeline" class="relative pl-6 border-l border-hairline space-y-6 mt-4">
+                <span class="text-xs text-mute-text italic">No interviews scheduled yet.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Panel 4: AI Prep Coach -->
+          <div id="panel-aiprep" class="space-y-4 hidden">
+            <div class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-4">
+              <h3 class="text-sm font-semibold tracking-tight text-ink border-b border-hairline pb-3 flex items-center gap-1.5">
+                <span class="text-on-primary bg-primary px-1.5 py-0.5 rounded-xs font-mono text-[10px]">AI</span>
+                Custom Technical Prep Guide
+              </h3>
+              
+              <!-- Prep empty state -->
+              <div id="prep-empty-state" class="text-center py-10 space-y-4">
+                <p class="text-xs text-mute-text">Generate personalized interview questions and topics based on the job details.</p>
+                <button
+                  id="generate-prep-btn"
+                  class="h-9 px-4 bg-primary text-on-primary rounded-full text-xs font-medium hover:bg-primary/95 transition-all cursor-pointer flex items-center justify-center mx-auto"
+                >
+                  <svg class="animate-spin -ml-1 mr-2 h-3.5 w-3.5 text-on-primary hidden" id="prep-spinner" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  <span id="prep-btn-text">Generate Prep Materials</span>
+                </button>
+              </div>
+
+              <!-- Prep display block -->
+              <div id="prep-results-box" class="hidden space-y-6">
+                <div>
+                  <h4 class="text-xs font-bold text-ink uppercase tracking-wider border-b border-hairline pb-1">Expected Interview Questions</h4>
+                  <ol class="list-decimal list-inside text-xs text-body-text mt-2.5 space-y-2" id="prep-questions-list"></ol>
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold text-ink uppercase tracking-wider border-b border-hairline pb-1">Core Tech & Core Topics to Study</h4>
+                  <ul class="list-disc list-inside text-xs text-body-text mt-2.5 space-y-1.5" id="prep-topics-list"></ul>
+                </div>
+                <div>
+                  <h4 class="text-xs font-bold text-ink uppercase tracking-wider border-b border-hairline pb-1">Interview Preparation Strategy</h4>
+                  <ul class="list-disc list-inside text-xs text-body-text mt-2.5 space-y-1.5" id="prep-tips-list"></ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right: Sidebar widgets (lg:col-span-4) -->
+        <div class="lg:col-span-4 space-y-6">
+          
+          <!-- Quick Stats Sidebar Card -->
+          <div class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-4">
+            <h3 class="text-xs font-mono uppercase tracking-wider text-mute-text border-b border-hairline pb-2">Overview Statistics</h3>
+            
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <p class="text-[10px] font-mono text-mute-text uppercase">Work Type</p>
+                <p class="text-xs font-semibold text-body-text mt-0.5" id="side-work-type">-</p>
+              </div>
+              <div>
+                <p class="text-[10px] font-mono text-mute-text uppercase">Location</p>
+                <p class="text-xs font-semibold text-body-text mt-0.5 truncate" id="side-location">-</p>
+              </div>
+              <div>
+                <p class="text-[10px] font-mono text-mute-text uppercase">Target Min Salary</p>
+                <p class="text-xs font-semibold text-body-text mt-0.5" id="side-salary-min">-</p>
+              </div>
+              <div>
+                <p class="text-[10px] font-mono text-mute-text uppercase">Target Max Salary</p>
+                <p class="text-xs font-semibold text-body-text mt-0.5" id="side-salary-max">-</p>
+              </div>
+            </div>
+            
+            <div class="border-t border-hairline pt-3">
+              <p class="text-[10px] font-mono text-mute-text uppercase">Job URL</p>
+              <p class="text-xs mt-1 truncate">
+                <a href="#" target="_blank" id="side-link" class="text-link hover:underline break-all">Open original posting</a>
+                <span id="side-no-link" class="text-mute-text italic">No URL provided</span>
+              </p>
+            </div>
+          </div>
+
+          <!-- Reminders Card -->
+          <div class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-4">
+            <h3 class="text-xs font-mono uppercase tracking-wider text-mute-text border-b border-hairline pb-2 flex items-center justify-between">
+              Reminders
+              <button id="show-reminder-btn" class="text-[10px] text-link hover:underline transition-all cursor-pointer font-medium">Add New</button>
+            </h3>
+
+            <!-- Reminder setup form -->
+            <form id="reminder-form" class="space-y-3 p-3 bg-canvas-soft border border-hairline rounded-sm hidden">
+              <div>
+                <label for="reminderDate" class="block text-[9px] font-bold text-mute-text uppercase">Alert Date & Time</label>
+                <input type="datetime-local" id="reminderDate" required class="mt-1 block w-full h-8 px-2 bg-canvas border border-hairline rounded-sm text-xs focus:outline-none" />
+              </div>
+              <div>
+                <label for="reminderMessage" class="block text-[9px] font-bold text-mute-text uppercase">Message</label>
+                <input type="text" id="reminderMessage" required class="mt-1 block w-full h-8 px-2 bg-canvas border border-hairline rounded-sm text-xs focus:outline-none" placeholder="e.g. Follow up on interview" />
+              </div>
+              <div class="flex gap-2 justify-end pt-1">
+                <button type="button" id="cancel-reminder-btn" class="h-7 px-2 border border-hairline text-ink rounded-sm text-[10px] font-medium hover:bg-canvas-soft-2 cursor-pointer">Cancel</button>
+                <button type="submit" id="save-reminder-btn" class="h-7 px-3 bg-primary text-on-primary rounded-sm text-[10px] font-medium hover:bg-primary/95 cursor-pointer">Save</button>
+              </div>
+            </form>
+
+            <ul class="text-xs space-y-2.5" id="reminders-list">
+              <li class="text-mute-text italic">No active reminders configured.</li>
+            </ul>
+          </div>
+
+          <!-- Administrative actions panel -->
+          <div class="bg-canvas border border-hairline p-6 rounded-md shadow-sm flex flex-col gap-3">
+            <button
+              id="edit-application-btn"
+              class="w-full h-10 px-4 bg-canvas border border-hairline text-ink rounded-full text-xs font-medium hover:bg-canvas-soft-2 transition-all cursor-pointer"
+            >
+              Edit Application
+            </button>
+            <button
+              id="delete-application-btn"
+              class="w-full h-10 px-4 bg-error-soft border border-error-deep/10 text-error-deep rounded-full text-xs font-medium hover:bg-red-100 transition-all cursor-pointer"
+            >
+              Delete Application
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+
+    <!-- MODAL: Edit Application -->
+    <div id="edit-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
+      <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Overlay -->
+        <div class="fixed inset-0 transition-opacity bg-primary/20 backdrop-blur-xs" id="edit-overlay"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+        <!-- Modal Card -->
+        <div class="inline-block align-bottom bg-canvas border border-hairline rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full relative">
+          
+          <!-- Loading overlay inside modal -->
+          <div id="modal-loading-overlay" class="absolute inset-0 bg-canvas/80 z-20 flex flex-col items-center justify-center space-y-2 hidden">
+            <svg class="animate-spin h-7 w-7 text-primary" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="text-[10px] font-semibold text-ink">Analyzing job details with Gemini...</p>
+          </div>
+
+          <div class="bg-canvas px-6 pt-5 pb-4 sm:p-6">
+            <h3 class="text-lg font-semibold tracking-tight text-ink border-b border-hairline pb-3">
+              Edit Application Metadata
+            </h3>
+            
+            <form id="edit-app-form" class="mt-4 space-y-4">
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label for="edit-company" class="block text-xs font-semibold text-body-text">Company Name *</label>
+                  <input type="text" id="edit-company" required class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none" />
+                </div>
+                <div>
+                  <label for="edit-title" class="block text-xs font-semibold text-body-text">Job Title *</label>
+                  <input type="text" id="edit-title" required class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none" />
+                </div>
+              </div>
+
+              <div>
+                <label for="edit-url" class="block text-xs font-semibold text-body-text">Job Post URL</label>
+                <input type="url" id="edit-url" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none" />
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label for="edit-workType" class="block text-xs font-semibold text-body-text">Work Type</label>
+                  <select id="edit-workType" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-xs focus:outline-none">
+                    <option value="Remote">Remote</option>
+                    <option value="Hybrid">Hybrid</option>
+                    <option value="Onsite">Onsite</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="edit-location" class="block text-xs font-semibold text-body-text">Location</label>
+                  <input type="text" id="edit-location" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label for="edit-salaryMin" class="block text-xs font-semibold text-body-text">Salary Min (Annual)</label>
+                  <input type="number" id="edit-salaryMin" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none" />
+                </div>
+                <div>
+                  <label for="edit-salaryMax" class="block text-xs font-semibold text-body-text">Salary Max (Annual)</label>
+                  <input type="number" id="edit-salaryMax" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none" />
+                </div>
+              </div>
+
+              <div>
+                <label for="edit-appliedDate" class="block text-xs font-semibold text-body-text">Applied Date</label>
+                <input type="date" id="edit-appliedDate" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none" />
+              </div>
+
+              <div>
+                <label for="edit-desc" class="block text-xs font-semibold text-body-text">Job Description</label>
+                <textarea id="edit-desc" rows="4" class="mt-1 block w-full p-2.5 bg-canvas border border-hairline rounded-sm text-xs focus:outline-none resize-none"></textarea>
+              </div>
+
+              <div>
+                <label for="edit-notes" class="block text-xs font-semibold text-body-text">My Notes</label>
+                <textarea id="edit-notes" rows="2" class="mt-1 block w-full p-2.5 bg-canvas border border-hairline rounded-sm text-xs focus:outline-none resize-none"></textarea>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <input type="checkbox" id="edit-analyze-ai" class="h-4 w-4 text-primary border-hairline rounded-sm focus:ring-primary cursor-pointer" />
+                <label for="edit-analyze-ai" class="text-xs text-body-text font-medium cursor-pointer">
+                  Run Gemini AI matching again on save
+                </label>
+              </div>
+            </form>
+          </div>
+          <div class="bg-canvas-soft-2 px-6 py-4 flex flex-row-reverse gap-3 border-t border-hairline">
+            <button type="button" id="save-edit-btn" class="h-9 px-4 bg-primary text-on-primary rounded-full text-xs font-medium hover:bg-primary/95 transition-all cursor-pointer">
+              Save Changes
+            </button>
+            <button type="button" id="close-edit-btn" class="h-9 px-4 bg-canvas border border-hairline text-ink rounded-full text-xs font-medium hover:bg-canvas-soft-2 transition-all cursor-pointer">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: Custom Confirmation Dialog (replaces browser confirm) -->
+    <div id="confirm-modal" class="fixed inset-0 z-[60] overflow-y-auto hidden">
+      <div class="flex items-center justify-center min-h-screen px-4">
+        <div class="fixed inset-0 transition-opacity bg-primary/20 backdrop-blur-xs" id="confirm-overlay"></div>
+        <div class="relative bg-canvas border border-hairline rounded-md shadow-xl max-w-sm w-full z-10">
+          <div class="p-6 space-y-3">
+            <div class="flex items-center gap-2">
+              <svg class="h-5 w-5 text-error-deep flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <h3 class="text-sm font-semibold text-ink" id="confirm-title">Confirm Action</h3>
+            </div>
+            <p class="text-xs text-body-text leading-relaxed" id="confirm-message">Are you sure?</p>
+          </div>
+          <div class="bg-canvas-soft-2 px-6 py-4 flex flex-row-reverse gap-3 border-t border-hairline rounded-b-md">
+            <button type="button" id="confirm-yes-btn" class="h-9 px-4 bg-error-deep text-white rounded-full text-xs font-medium hover:bg-red-700 transition-all cursor-pointer">
+              Confirm
+            </button>
+            <button type="button" id="confirm-no-btn" class="h-9 px-4 bg-canvas border border-hairline text-ink rounded-full text-xs font-medium hover:bg-canvas-soft-2 transition-all cursor-pointer">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</Layout>
+
+<script>
+  import { supabase } from '../../../lib/supabase';
+
+  // State
+  let currentUser: any = null;
+  let userProfile: any = null;
+  let application: any = null;
+  let coverLetter: any = null;
+  let interviews: any[] = [];
+  let reminders: any[] = [];
+
+  // DOM Elements
+  const loadingSection = document.querySelector('#detail-page-loading') as HTMLElement;
+  const contentSection = document.querySelector('#detail-page-content') as HTMLElement;
+
+  // Header Elements
+  const logoImg = document.querySelector('#company-logo') as HTMLImageElement;
+  const logoFallback = document.querySelector('#logo-fallback') as HTMLElement;
+  const headerTitle = document.querySelector('#header-title') as HTMLElement;
+  const headerCompanyLocation = document.querySelector('#header-company-location') as HTMLElement;
+  const headerAppliedDate = document.querySelector('#header-applied-date') as HTMLElement;
+  const headerScoreBadge = document.querySelector('#header-score-badge') as HTMLElement;
+  const headerStatusSelect = document.querySelector('#header-status-select') as HTMLSelectElement;
+
+  // Tabs button toggles
+  const tabBtnOverview = document.querySelector('#tab-btn-overview') as HTMLButtonElement;
+  const tabBtnCover = document.querySelector('#tab-btn-cover') as HTMLButtonElement;
+  const tabBtnInterviews = document.querySelector('#tab-btn-interviews') as HTMLButtonElement;
+  const tabBtnAiPrep = document.querySelector('#tab-btn-aiprep') as HTMLButtonElement;
+
+  // Tabs panels
+  const panelOverview = document.querySelector('#panel-overview') as HTMLElement;
+  const panelCover = document.querySelector('#panel-cover') as HTMLElement;
+  const panelInterviews = document.querySelector('#panel-interviews') as HTMLElement;
+  const panelAiPrep = document.querySelector('#panel-aiprep') as HTMLElement;
+
+  // Overview Panel
+  const overviewAiSummary = document.querySelector('#overview-ai-summary') as HTMLElement;
+  const overviewJobDesc = document.querySelector('#overview-job-desc') as HTMLElement;
+  const overviewNotes = document.querySelector('#overview-notes') as HTMLElement;
+
+  // Cover Letter Panel
+  const coverEmptyState = document.querySelector('#cover-empty-state') as HTMLElement;
+  const coverEditorBox = document.querySelector('#cover-editor-box') as HTMLElement;
+  const coverContentTextarea = document.querySelector('#cover-content-textarea') as HTMLTextAreaElement;
+  const generateCoverBtn = document.querySelector('#generate-cover-btn') as HTMLButtonElement;
+  const saveCoverBtn = document.querySelector('#save-cover-btn') as HTMLButtonElement;
+  const copyCoverBtn = document.querySelector('#copy-cover-btn') as HTMLButtonElement;
+
+  // Interview timeline
+  const timelineContainer = document.querySelector('#interviews-timeline') as HTMLElement;
+  const interviewsCountBadge = document.querySelector('#tab-interviews-count') as HTMLElement;
+  const showInterviewFormBtn = document.querySelector('#show-interview-form-btn') as HTMLButtonElement;
+  const interviewForm = document.querySelector('#interview-form') as HTMLFormElement;
+  const cancelInterviewBtn = document.querySelector('#cancel-interview-btn') as HTMLButtonElement;
+
+  // AI Prep tab
+  const prepEmptyState = document.querySelector('#prep-empty-state') as HTMLElement;
+  const prepResultsBox = document.querySelector('#prep-results-box') as HTMLElement;
+  const generatePrepBtn = document.querySelector('#generate-prep-btn') as HTMLButtonElement;
+  const prepQuestionsList = document.querySelector('#prep-questions-list') as HTMLElement;
+  const prepTopicsList = document.querySelector('#prep-topics-list') as HTMLElement;
+  const prepTipsList = document.querySelector('#prep-tips-list') as HTMLElement;
+
+  // Sidebar Elements
+  const sideWorkType = document.querySelector('#side-work-type') as HTMLElement;
+  const sideLocation = document.querySelector('#side-location') as HTMLElement;
+  const sideSalaryMin = document.querySelector('#side-salary-min') as HTMLElement;
+  const sideSalaryMax = document.querySelector('#side-salary-max') as HTMLElement;
+  const sideLink = document.querySelector('#side-link') as HTMLAnchorElement;
+  const sideNoLink = document.querySelector('#side-no-link') as HTMLElement;
+  
+  // Reminder widgets
+  const showReminderBtn = document.querySelector('#show-reminder-btn') as HTMLButtonElement;
+  const reminderForm = document.querySelector('#reminder-form') as HTMLFormElement;
+  const cancelReminderBtn = document.querySelector('#cancel-reminder-btn') as HTMLButtonElement;
+  const remindersList = document.querySelector('#reminders-list') as HTMLElement;
+
+  // Action Triggers
+  const editApplicationBtn = document.querySelector('#edit-application-btn') as HTMLButtonElement;
+  const deleteApplicationBtn = document.querySelector('#delete-application-btn') as HTMLButtonElement;
+
+  // Edit Modal Elements
+  const editModal = document.querySelector('#edit-modal') as HTMLElement;
+  const editOverlay = document.querySelector('#edit-overlay') as HTMLElement;
+  const closeEditBtn = document.querySelector('#close-edit-btn') as HTMLButtonElement;
+  const saveEditBtn = document.querySelector('#save-edit-btn') as HTMLButtonElement;
+
+  // Setup Initialize
+  document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Authenticate user
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.href = '/login';
+      return;
+    }
+    currentUser = session.user;
+
+    // 2. Extract application ID
+    const urlParams = new URLSearchParams(window.location.search);
+    let appId = urlParams.get('id');
+    
+    if (!appId) {
+      const pathParts = window.location.pathname.split('/');
+      appId = pathParts[pathParts.indexOf('applications') + 1];
+    }
+
+    if (!appId || appId === 'placeholder') {
+      // Direct redirect back to pipeline if fallback is loaded directly
+      window.location.href = '/dashboard';
+      return;
+    }
+
+    // 3. Fetch Core Application Record
+    await loadApplicationData(appId);
+
+    // 4. Set up interactive page events
+    setupEvents();
+  });
+
+  // Fetch full data structures
+  async function loadApplicationData(appId: string) {
+    try {
+      // Parallel fetches for speed
+      const [appRes, coverRes, interviewsRes, remindersRes, profileRes] = await Promise.all([
+        supabase.from('applications').select('*').eq('id', appId).eq('user_id', currentUser.id).single(),
+        supabase.from('cover_letters').select('*').eq('application_id', appId).eq('user_id', currentUser.id).maybeSingle(),
+        supabase.from('interviews').select('*').eq('application_id', appId).eq('user_id', currentUser.id).order('interview_date', { ascending: true }),
+        supabase.from('reminders').select('*').eq('application_id', appId).eq('user_id', currentUser.id).order('reminder_date', { ascending: true }),
+        supabase.from('profiles').select('*').eq('id', currentUser.id).single()
+      ]);
+
+      if (appRes.error) throw appRes.error;
+      if (coverRes.error && coverRes.error.code !== 'PGRST116') throw coverRes.error;
+      if (interviewsRes.error) throw interviewsRes.error;
+      if (remindersRes.error) throw remindersRes.error;
+      if (profileRes.error && profileRes.error.code !== 'PGRST116') throw profileRes.error;
+
+      application = appRes.data;
+      coverLetter = coverRes.data || null;
+      interviews = interviewsRes.data || [];
+      reminders = remindersRes.data || [];
+      userProfile = profileRes.data || null;
+
+      // Populate UI
+      populatePageData();
+
+      // Show content
+      loadingSection?.classList.add('hidden');
+      contentSection?.classList.remove('hidden');
+
+    } catch (err: any) {
+      console.error('Error fetching application details:', err);
+      if ((window as any).showToast) (window as any).showToast(err.message || 'Failed to retrieve application data.', 'error');
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1500);
+    }
+  }
+
+  // Populate data fields into elements
+  function populatePageData() {
+    // Logo & Header
+    if (logoImg && logoFallback) {
+      const cleanName = application.company_name.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const domain = `${cleanName}.com`;
+      logoImg.src = `https://logo.clearbit.com/${domain}`;
+      logoImg.alt = `${application.company_name} Logo`;
+      
+      logoImg.onload = () => {
+        logoImg.classList.remove('hidden');
+        logoFallback.classList.add('hidden');
+      };
+      logoImg.onerror = () => {
+        logoImg.classList.add('hidden');
+        logoFallback.classList.remove('hidden');
+        logoFallback.textContent = application.company_name.charAt(0);
+      };
+    }
+
+    if (headerTitle) headerTitle.textContent = application.job_title;
+    if (headerCompanyLocation) headerCompanyLocation.textContent = `${application.company_name} • ${application.location || 'Unknown'}`;
+    if (headerAppliedDate) {
+      headerAppliedDate.textContent = application.applied_date
+        ? `Applied: ${new Date(application.applied_date).toLocaleDateString('en-US', { dateStyle: 'medium' })}`
+        : `Tracked: ${new Date(application.created_at).toLocaleDateString('en-US', { dateStyle: 'medium' })}`;
+    }
+
+    // Match Badge
+    if (headerScoreBadge) {
+      if (application.ai_match_score !== null && application.ai_match_score !== undefined) {
+        const score = Number(application.ai_match_score);
+        headerScoreBadge.textContent = `${score}% Match`;
+        
+        let badgeColor = 'bg-red-50 text-red-700 border-red-200';
+        if (score >= 80) badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+        else if (score >= 60) badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
+        
+        headerScoreBadge.className = `text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeColor}`;
+        headerScoreBadge.classList.remove('hidden');
+      } else {
+        headerScoreBadge.classList.add('hidden');
+      }
+    }
+
+    if (headerStatusSelect) headerStatusSelect.value = application.status;
+
+    // Overview Panel
+    if (overviewAiSummary) {
+      overviewAiSummary.textContent = application.ai_summary || 'No AI summary calculated yet. Paste a description to analyze.';
+    }
+    if (overviewJobDesc) {
+      overviewJobDesc.textContent = application.job_description || 'No description provided.';
+    }
+    if (overviewNotes) {
+      overviewNotes.textContent = application.notes || 'No custom notes added.';
+    }
+
+    // Cover Letter Panel
+    if (coverLetter) {
+      coverEmptyState?.classList.add('hidden');
+      coverEditorBox?.classList.remove('hidden');
+      if (coverContentTextarea) coverContentTextarea.value = coverLetter.content;
+    } else {
+      coverEmptyState?.classList.remove('hidden');
+      coverEditorBox?.classList.add('hidden');
+    }
+
+    // Sidebar Info
+    if (sideWorkType) sideWorkType.textContent = application.work_type || 'Unknown';
+    if (sideLocation) sideLocation.textContent = application.location || 'Unknown';
+    
+    if (sideSalaryMin) {
+      sideSalaryMin.textContent = application.salary_min 
+        ? `$${Number(application.salary_min).toLocaleString()}` 
+        : 'Not listed';
+    }
+    if (sideSalaryMax) {
+      sideSalaryMax.textContent = application.salary_max 
+        ? `$${Number(application.salary_max).toLocaleString()}` 
+        : 'Not listed';
+    }
+
+    if (sideLink && sideNoLink) {
+      if (application.job_url) {
+        sideLink.href = application.job_url;
+        sideLink.classList.remove('hidden');
+        sideNoLink.classList.add('hidden');
+      } else {
+        sideLink.classList.add('hidden');
+        sideNoLink.classList.remove('hidden');
+      }
+    }
+
+    // Timeline list
+    renderInterviewsList();
+
+    // Reminders list
+    renderRemindersList();
+  }
+
+  // Render Interview timeline cards
+  function renderInterviewsList() {
+    if (interviewsCountBadge) interviewsCountBadge.textContent = String(interviews.length);
+    if (!timelineContainer) return;
+
+    timelineContainer.innerHTML = '';
+    if (interviews.length === 0) {
+      timelineContainer.innerHTML = `
+        <div class="text-center py-10 space-y-4 border border-dashed border-hairline rounded-md bg-canvas shadow-xs select-none">
+          <p class="text-xs text-mute-text">No interviews scheduled yet.</p>
+          <button
+            id="schedule-interview-empty-btn"
+            class="h-9 px-4 bg-primary text-on-primary rounded-full text-xs font-medium hover:bg-primary/95 transition-all cursor-pointer flex items-center justify-center mx-auto"
+          >
+            Schedule Interview
+          </button>
+        </div>
+      `;
+      timelineContainer.querySelector('#schedule-interview-empty-btn')?.addEventListener('click', () => {
+        interviewForm?.classList.remove('hidden');
+        showInterviewFormBtn?.classList.add('hidden');
+        interviewForm?.scrollIntoView({ behavior: 'smooth' });
+      });
+      return;
+    }
+
+    interviews.forEach(iv => {
+      const date = new Date(iv.interview_date).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      // Style badge
+      let badgeStyle = 'bg-primary/5 border-primary/10 text-primary';
+      if (iv.outcome === 'Passed') badgeStyle = 'bg-emerald-50 border-emerald-200 text-emerald-700';
+      else if (iv.outcome === 'Failed') badgeStyle = 'bg-red-50 border-red-200 text-red-700';
+      else if (iv.outcome === 'Offer') badgeStyle = 'bg-link-bg-soft border-link/20 text-link-deep';
+
+      const card = document.createElement('div');
+      card.className = 'relative border border-hairline p-4 rounded-md bg-canvas shadow-xs space-y-2';
+      card.innerHTML = `
+        <!-- Timeline node dot -->
+        <span class="absolute -left-[30px] top-6 h-2 w-2 rounded-full bg-primary border-4 border-canvas-soft ring-4 ring-canvas-soft"></span>
+        
+        <div class="flex justify-between items-center gap-3">
+          <span class="text-xs font-semibold text-ink capitalize">${iv.interview_type} Interview</span>
+          <span class="text-[9px] font-bold px-2 py-0.5 rounded-full border ${badgeStyle}">${iv.outcome}</span>
+        </div>
+        <p class="text-[10px] text-mute-text font-mono">${date} • Interviewer: ${iv.interviewer_name || 'Not specified'}</p>
+        ${iv.notes ? `<p class="text-xs text-body-text whitespace-pre-wrap mt-2 bg-canvas-soft p-2.5 rounded-sm">${iv.notes}</p>` : ''}
+      `;
+      timelineContainer.appendChild(card);
+    });
+  }
+
+  // Render Reminder widgets
+  function renderRemindersList() {
+    if (!remindersList) return;
+
+    remindersList.innerHTML = '';
+    if (reminders.length === 0) {
+      remindersList.innerHTML = '<li class="text-mute-text italic">No active reminders configured.</li>';
+      return;
+    }
+
+    reminders.forEach(rem => {
+      const date = new Date(rem.reminder_date).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      const li = document.createElement('li');
+      li.className = 'bg-canvas-soft border border-hairline p-3 rounded-sm space-y-1 relative';
+      li.innerHTML = `
+        <div class="flex justify-between items-start gap-1">
+          <p class="text-xs font-medium text-body-text">${rem.message}</p>
+          <button class="delete-rem-btn text-mute-text hover:text-error-deep cursor-pointer" data-id="${rem.id}">
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+          </button>
+        </div>
+        <p class="text-[9px] font-mono text-mute-text">${date}</p>
+      `;
+
+      // Wire up individual reminder delete action
+      li.querySelector('.delete-rem-btn')?.addEventListener('click', async (e: any) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        const confirmed = await showConfirmDialog('Delete Reminder', 'Are you sure you want to delete this reminder? This cannot be undone.');
+        if (confirmed) {
+          const { error } = await supabase.from('reminders').delete().eq('id', id);
+          if (error) {
+            if ((window as any).showToast) (window as any).showToast(error.message || 'Failed to delete reminder.', 'error');
+          } else {
+            if ((window as any).showToast) (window as any).showToast('Reminder deleted.', 'success');
+            await loadApplicationData(application.id);
+          }
+        }
+      });
+
+      remindersList.appendChild(li);
+    });
+  }
+
+  // Inline Validation Helpers
+  function setValidationError(inputEl: HTMLElement, message: string) {
+    clearValidationError(inputEl);
+    inputEl.classList.add('border-error-deep', 'focus:border-error-deep', 'focus:ring-error-deep');
+    const errEl = document.createElement('p');
+    errEl.className = 'mt-1 text-xs text-error-deep font-medium inline-validation-error';
+    errEl.textContent = message;
+    inputEl.parentElement?.appendChild(errEl);
+  }
+
+  function clearValidationError(inputEl: HTMLElement) {
+    inputEl.classList.remove('border-error-deep', 'focus:border-error-deep', 'focus:ring-error-deep');
+    const parent = inputEl.parentElement;
+    if (parent) {
+      const existing = parent.querySelector('.inline-validation-error');
+      if (existing) existing.remove();
+    }
+  }
+
+  // Custom Confirm Dialog Helper (replaces browser confirm)
+  function showConfirmDialog(title: string, message: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      const modal = document.querySelector('#confirm-modal') as HTMLElement;
+      const titleEl = document.querySelector('#confirm-title') as HTMLElement;
+      const messageEl = document.querySelector('#confirm-message') as HTMLElement;
+      const yesBtn = document.querySelector('#confirm-yes-btn') as HTMLButtonElement;
+      const noBtn = document.querySelector('#confirm-no-btn') as HTMLButtonElement;
+      const overlay = document.querySelector('#confirm-overlay') as HTMLElement;
+
+      if (!modal || !titleEl || !messageEl || !yesBtn || !noBtn) {
+        resolve(false);
+        return;
+      }
+
+      titleEl.textContent = title;
+      messageEl.textContent = message;
+      modal.classList.remove('hidden');
+
+      function cleanup() {
+        modal.classList.add('hidden');
+        yesBtn.removeEventListener('click', onYes);
+        noBtn.removeEventListener('click', onNo);
+        overlay?.removeEventListener('click', onNo);
+      }
+
+      function onYes() {
+        cleanup();
+        resolve(true);
+      }
+
+      function onNo() {
+        cleanup();
+        resolve(false);
+      }
+
+      yesBtn.addEventListener('click', onYes);
+      noBtn.addEventListener('click', onNo);
+      overlay?.addEventListener('click', onNo);
+    });
+  }
+
+  // Wire up page events
+  function setupEvents() {
+    // Theme toggle btn hook
+    document.querySelector('#theme-toggle-btn')?.addEventListener('click', () => {
+      (window as any).toggleTheme();
+    });
+
+    // Form element event listeners to clear error validations
+    const interviewDate = document.querySelector('#interviewDate') as HTMLInputElement;
+    const interviewType = document.querySelector('#interviewType') as HTMLSelectElement;
+    interviewDate?.addEventListener('input', () => clearValidationError(interviewDate));
+    interviewType?.addEventListener('change', () => clearValidationError(interviewType));
+
+    const reminderDate = document.querySelector('#reminderDate') as HTMLInputElement;
+    const reminderMessage = document.querySelector('#reminderMessage') as HTMLInputElement;
+    reminderDate?.addEventListener('input', () => clearValidationError(reminderDate));
+    reminderMessage?.addEventListener('input', () => clearValidationError(reminderMessage));
+
+    const editCompany = document.querySelector('#edit-company') as HTMLInputElement;
+    const editTitle = document.querySelector('#edit-title') as HTMLInputElement;
+    const editSalaryMin = document.querySelector('#edit-salaryMin') as HTMLInputElement;
+    const editSalaryMax = document.querySelector('#edit-salaryMax') as HTMLInputElement;
+    editCompany?.addEventListener('input', () => clearValidationError(editCompany));
+    editTitle?.addEventListener('input', () => clearValidationError(editTitle));
+    editSalaryMin?.addEventListener('input', () => clearValidationError(editSalaryMin));
+    editSalaryMax?.addEventListener('input', () => clearValidationError(editSalaryMax));
+
+    // 1. Status Dropdown Realtime update
+    headerStatusSelect?.addEventListener('change', async () => {
+      const status = headerStatusSelect.value;
+      try {
+        const { error } = await supabase
+          .from('applications')
+          .update({ status })
+          .eq('id', application.id);
+
+        if (error) throw error;
+        application.status = status;
+        
+        if ((window as any).showToast) {
+          const formatted = status.charAt(0).toUpperCase() + status.slice(1);
+          (window as any).showToast(`Status changed to ${formatted}.`, 'success');
+        }
+      } catch (err: any) {
+        if ((window as any).showToast) (window as any).showToast(err.message || 'Error updating status in database.', 'error');
+        headerStatusSelect.value = application.status; // reset
+      }
+    });
+
+    // 2. Tabs panel switching
+    setupTabs();
+
+    // 3. AI Cover Letter generation triggers
+    generateCoverBtn?.addEventListener('click', handleGenerateCoverLetter);
+    saveCoverBtn?.addEventListener('click', handleSaveCoverLetter);
+    copyCoverBtn?.addEventListener('click', handleCopyCoverLetter);
+
+    // 4. Interview Setup Toggling
+    showInterviewFormBtn?.addEventListener('click', () => {
+      interviewForm?.classList.remove('hidden');
+      showInterviewFormBtn?.classList.add('hidden');
+    });
+    cancelInterviewBtn?.addEventListener('click', () => {
+      interviewForm?.reset();
+      interviewForm?.classList.add('hidden');
+      showInterviewFormBtn?.classList.remove('hidden');
+    });
+
+    // Interview Save action
+    interviewForm?.addEventListener('submit', handleSaveInterview);
+
+    // 5. AI Interview Prep setup
+    generatePrepBtn?.addEventListener('click', handleGeneratePrep);
+
+    // 6. Reminder Setup Toggling
+    showReminderBtn?.addEventListener('click', () => {
+      reminderForm?.classList.remove('hidden');
+      showReminderBtn?.classList.add('hidden');
+    });
+    cancelReminderBtn?.addEventListener('click', () => {
+      reminderForm?.reset();
+      reminderForm?.classList.add('hidden');
+      showReminderBtn?.classList.remove('hidden');
+    });
+
+    // Reminder Save action
+    reminderForm?.addEventListener('submit', handleSaveReminder);
+
+    // 7. Admin actions (Delete & Edit)
+    deleteApplicationBtn?.addEventListener('click', handleDeleteApplication);
+    editApplicationBtn?.addEventListener('click', handleOpenEditModal);
+
+    // Edit modal events
+    const closeAllModals = () => editModal?.classList.add('hidden');
+    closeEditBtn?.addEventListener('click', closeAllModals);
+    editOverlay?.addEventListener('click', closeAllModals);
+    saveEditBtn?.addEventListener('click', handleSaveEditChanges);
+  }
+
+  // Tabs layout toggles
+  function setupTabs() {
+    const tabs = [
+      { btn: tabBtnOverview, panel: panelOverview },
+      { btn: tabBtnCover, panel: panelCover },
+      { btn: tabBtnInterviews, panel: panelInterviews },
+      { btn: tabBtnAiPrep, panel: panelAiPrep }
+    ];
+
+    tabs.forEach(tab => {
+      tab.btn?.addEventListener('click', () => {
+        // Toggle Active styles on buttons
+        tabs.forEach(t => {
+          t.btn?.classList.replace('text-ink', 'text-mute-text');
+          t.btn?.classList.remove('border-b-2', 'border-primary');
+          t.panel?.classList.add('hidden');
+        });
+
+        tab.btn?.classList.replace('text-mute-text', 'text-ink');
+        tab.btn?.classList.add('border-b-2', 'border-primary');
+        tab.panel?.classList.remove('hidden');
+      });
+    });
+  }
+
+  // Cover Letter generation logic
+  async function handleGenerateCoverLetter() {
+    if (!application) return;
+
+    if (generateCoverBtn) {
+      generateCoverBtn.disabled = true;
+      generateCoverBtn.textContent = 'Generating...';
+    }
+
+    try {
+      const response = await fetch('/api/generate-cover-letter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          job: application,
+          profile: userProfile
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result || result.error) {
+        throw new Error(result?.error || 'AI analysis failed, please try again');
+      }
+
+      // Auto-save to Supabase
+      const { data, error } = await supabase
+        .from('cover_letters')
+        .upsert({
+          application_id: application.id,
+          user_id: currentUser.id,
+          content: result.cover_letter,
+          ai_generated: true
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      coverLetter = data;
+      populatePageData();
+      
+      if ((window as any).showToast) (window as any).showToast('Cover letter generated.', 'success');
+
+    } catch (err: any) {
+      if ((window as any).showToast) (window as any).showToast(err.message || 'Error generating cover letter.', 'error');
+      if (generateCoverBtn) {
+        generateCoverBtn.disabled = false;
+        generateCoverBtn.textContent = 'Generate Cover Letter with Gemini AI';
+      }
+    }
+  }
+
+  // Save manual cover letter edits
+  async function handleSaveCoverLetter() {
+    const nextContent = coverContentTextarea?.value.trim();
+    if (!nextContent) return;
+
+    if (saveCoverBtn) {
+      saveCoverBtn.disabled = true;
+      saveCoverBtn.textContent = 'Saving...';
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('cover_letters')
+        .upsert({
+          id: coverLetter?.id || undefined, // upsert on primary key if exists
+          application_id: application.id,
+          user_id: currentUser.id,
+          content: nextContent,
+          ai_generated: coverLetter ? coverLetter.ai_generated : false
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      coverLetter = data;
+      if ((window as any).showToast) (window as any).showToast('Cover letter saved.', 'success');
+    } catch (err: any) {
+      if ((window as any).showToast) (window as any).showToast(err.message || 'Error saving cover letter changes.', 'error');
+    } finally {
+      if (saveCoverBtn) {
+        saveCoverBtn.disabled = false;
+        saveCoverBtn.textContent = 'Save Changes';
+      }
+    }
+  }
+
+  // Copy Cover letter to Clipboard
+  function handleCopyCoverLetter() {
+    const text = coverContentTextarea?.value || '';
+    if (!text) return;
+
+    navigator.clipboard.writeText(text).then(() => {
+      if ((window as any).showToast) (window as any).showToast('Cover letter copied.', 'success');
+      if (copyCoverBtn) {
+        const originalText = copyCoverBtn.textContent;
+        copyCoverBtn.textContent = 'Copied!';
+        copyCoverBtn.classList.add('bg-emerald-50', 'text-emerald-700', 'border-emerald-200');
+        setTimeout(() => {
+          copyCoverBtn.textContent = originalText;
+          copyCoverBtn.classList.remove('bg-emerald-50', 'text-emerald-700', 'border-emerald-200');
+        }, 1500);
+      }
+    });
+  }
+
+  // Save Scheduled Interview
+  async function handleSaveInterview(e: Event) {
+    e.preventDefault();
+
+    const dateEl = document.querySelector('#interviewDate') as HTMLInputElement;
+    const typeEl = document.querySelector('#interviewType') as HTMLSelectElement;
+
+    const dateVal = dateEl.value;
+    const typeVal = typeEl.value;
+    const nameVal = (document.querySelector('#interviewerName') as HTMLInputElement).value.trim();
+    const notesVal = (document.querySelector('#interviewNotes') as HTMLTextAreaElement).value.trim();
+    const outcomeVal = (document.querySelector('#interviewOutcome') as HTMLSelectElement).value;
+
+    clearValidationError(dateEl);
+    clearValidationError(typeEl);
+
+    let hasError = false;
+    if (!dateVal) {
+      setValidationError(dateEl, 'Date & Time is required.');
+      hasError = true;
+    }
+    if (!typeVal) {
+      setValidationError(typeEl, 'Interview Type is required.');
+      hasError = true;
+    }
+
+    if (hasError) return;
+
+    try {
+      const { error } = await supabase
+        .from('interviews')
+        .insert({
+          application_id: application.id,
+          user_id: currentUser.id,
+          interview_date: new Date(dateVal).toISOString(),
+          interview_type: typeVal,
+          interviewer_name: nameVal || null,
+          notes: notesVal || null,
+          outcome: outcomeVal
+        });
+
+      if (error) throw error;
+
+      // Reset Form & reload
+      interviewForm?.reset();
+      interviewForm?.classList.add('hidden');
+      showInterviewFormBtn?.classList.remove('hidden');
+
+      if ((window as any).showToast) (window as any).showToast('Interview scheduled successfully.', 'success');
+      await loadApplicationData(application.id);
+    } catch (err: any) {
+      if ((window as any).showToast) (window as any).showToast(err.message || 'Error saving interview scheduled event.', 'error');
+    }
+  }
+
+  // AI Interview Prep generator trigger
+  async function handleGeneratePrep() {
+    if (!application || !application.job_description) {
+      if ((window as any).showToast) (window as any).showToast('Job description is required to generate interview prep materials.', 'error');
+      return;
+    }
+
+    const btn = document.querySelector('#generate-prep-btn') as HTMLButtonElement;
+    const spinner = document.querySelector('#prep-spinner') as HTMLElement;
+    const btnTextSpan = document.querySelector('#prep-btn-text') as HTMLElement;
+
+    btn.disabled = true;
+    if (spinner) spinner.classList.remove('hidden');
+    if (btnTextSpan) btnTextSpan.textContent = 'Preparing Coach...';
+
+    try {
+      const response = await fetch('/api/generate-interview-prep', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobDescription: application.job_description,
+          role: application.job_title
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result || result.error) {
+        throw new Error(result?.error || 'AI analysis failed, please try again');
+      }
+
+      // Render Questions list
+      if (prepQuestionsList) {
+        prepQuestionsList.innerHTML = '';
+        (result.likely_questions || []).forEach((q: string) => {
+          const li = document.createElement('li');
+          li.textContent = q;
+          prepQuestionsList.appendChild(li);
+        });
+      }
+
+      // Render Topics list
+      if (prepTopicsList) {
+        prepTopicsList.innerHTML = '';
+        (result.topics_to_study || []).forEach((t: string) => {
+          const li = document.createElement('li');
+          li.textContent = t;
+          prepTopicsList.appendChild(li);
+        });
+      }
+
+      // Render Tips list
+      if (prepTipsList) {
+        prepTipsList.innerHTML = '';
+        (result.tips || []).forEach((t: string) => {
+          const li = document.createElement('li');
+          li.textContent = t;
+          prepTipsList.appendChild(li);
+        });
+      }
+
+      prepEmptyState?.classList.add('hidden');
+      prepResultsBox?.classList.remove('hidden');
+      
+      if ((window as any).showToast) (window as any).showToast('AI prep materials generated!', 'success');
+
+    } catch (err: any) {
+      if ((window as any).showToast) (window as any).showToast(err.message || 'Error generating prep details.', 'error');
+      btn.disabled = false;
+      if (btnTextSpan) btnTextSpan.textContent = 'Generate Prep Materials';
+    } finally {
+      if (spinner) spinner.classList.add('hidden');
+    }
+  }
+
+  // Save reminder trigger
+  async function handleSaveReminder(e: Event) {
+    e.preventDefault();
+
+    const dateEl = document.querySelector('#reminderDate') as HTMLInputElement;
+    const msgEl = document.querySelector('#reminderMessage') as HTMLInputElement;
+
+    const dateVal = dateEl.value;
+    const msgVal = msgEl.value.trim();
+
+    clearValidationError(dateEl);
+    clearValidationError(msgEl);
+
+    let hasError = false;
+    if (!dateVal) {
+      setValidationError(dateEl, 'Alert Date & Time is required.');
+      hasError = true;
+    }
+    if (!msgVal) {
+      setValidationError(msgEl, 'Message is required.');
+      hasError = true;
+    }
+
+    if (hasError) return;
+
+    try {
+      const { error } = await supabase
+        .from('reminders')
+        .insert({
+          application_id: application.id,
+          user_id: currentUser.id,
+          reminder_date: new Date(dateVal).toISOString(),
+          message: msgVal
+        });
+
+      if (error) throw error;
+
+      // Reset
+      reminderForm?.reset();
+      reminderForm?.classList.add('hidden');
+      showReminderBtn?.classList.remove('hidden');
+
+      if ((window as any).showToast) (window as any).showToast('Reminder saved.', 'success');
+      await loadApplicationData(application.id);
+    } catch (err: any) {
+      if ((window as any).showToast) (window as any).showToast(err.message || 'Error saving reminder.', 'error');
+    }
+  }
+
+  // Delete Job Application completely
+  async function handleDeleteApplication() {
+    const confirmed = await showConfirmDialog(
+      'Delete Application',
+      'Are you sure you want to delete this job application? This action will permanently remove all associated cover letters, interviews, and reminders.'
+    );
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .delete()
+        .eq('id', application.id);
+
+      if (error) throw error;
+      
+      if ((window as any).showToast) (window as any).showToast('Application deleted successfully.', 'success');
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 800);
+    } catch (err: any) {
+      if ((window as any).showToast) (window as any).showToast(err.message || 'Error deleting application.', 'error');
+    }
+  }
+
+  // Open Edit Metadata Modal
+  function handleOpenEditModal() {
+    // Populate form fields
+    const company = document.querySelector('#edit-company') as HTMLInputElement;
+    const title = document.querySelector('#edit-title') as HTMLInputElement;
+    const url = document.querySelector('#edit-url') as HTMLInputElement;
+    const workType = document.querySelector('#edit-workType') as HTMLSelectElement;
+    const loc = document.querySelector('#edit-location') as HTMLInputElement;
+    const salMin = document.querySelector('#edit-salaryMin') as HTMLInputElement;
+    const salMax = document.querySelector('#edit-salaryMax') as HTMLInputElement;
+    const applied = document.querySelector('#edit-appliedDate') as HTMLInputElement;
+    const desc = document.querySelector('#edit-desc') as HTMLTextAreaElement;
+    const notes = document.querySelector('#edit-notes') as HTMLTextAreaElement;
+    const analyzeCheckbox = document.querySelector('#edit-analyze-ai') as HTMLInputElement;
+
+    if (company) company.value = application.company_name;
+    if (title) title.value = application.job_title;
+    if (url) url.value = application.job_url || '';
+    if (workType) workType.value = application.work_type || 'Remote';
+    if (loc) loc.value = application.location || '';
+    if (salMin) salMin.value = application.salary_min || '';
+    if (salMax) salMax.value = application.salary_max || '';
+    
+    if (applied) {
+      applied.value = application.applied_date 
+        ? new Date(application.applied_date).toISOString().split('T')[0]
+        : '';
+    }
+
+    if (desc) desc.value = application.job_description || '';
+    if (notes) notes.value = application.notes || '';
+    if (analyzeCheckbox) analyzeCheckbox.checked = false; // default false
+
+    editModal?.classList.remove('hidden');
+  }
+
+  // Save changes from Edit Modal
+  async function handleSaveEditChanges() {
+    const editCompanyEl = document.querySelector('#edit-company') as HTMLInputElement;
+    const editTitleEl = document.querySelector('#edit-title') as HTMLInputElement;
+    const editSalaryMinEl = document.querySelector('#edit-salaryMin') as HTMLInputElement;
+    const editSalaryMaxEl = document.querySelector('#edit-salaryMax') as HTMLInputElement;
+
+    const company = editCompanyEl.value.trim();
+    const title = editTitleEl.value.trim();
+    const url = (document.querySelector('#edit-url') as HTMLInputElement).value.trim();
+    const workType = (document.querySelector('#edit-workType') as HTMLSelectElement).value;
+    const loc = (document.querySelector('#edit-location') as HTMLInputElement).value.trim();
+    const salMin = editSalaryMinEl.value;
+    const salMax = editSalaryMaxEl.value;
+    const applied = (document.querySelector('#edit-appliedDate') as HTMLInputElement).value;
+    const desc = (document.querySelector('#edit-desc') as HTMLTextAreaElement).value.trim();
+    const notes = (document.querySelector('#edit-notes') as HTMLTextAreaElement).value.trim();
+    const analyzeWithAi = (document.querySelector('#edit-analyze-ai') as HTMLInputElement).checked;
+
+    clearValidationError(editCompanyEl);
+    clearValidationError(editTitleEl);
+    clearValidationError(editSalaryMinEl);
+    clearValidationError(editSalaryMaxEl);
+
+    let hasError = false;
+    if (!company) {
+      setValidationError(editCompanyEl, 'Company name is required.');
+      hasError = true;
+    }
+    if (!title) {
+      setValidationError(editTitleEl, 'Job title is required.');
+      hasError = true;
+    }
+
+    const salaryMin = salMin ? Number(salMin) : null;
+    const salaryMax = salMax ? Number(salMax) : null;
+
+    if (salaryMin !== null && salaryMin < 0) {
+      setValidationError(editSalaryMinEl, 'Salary min cannot be negative.');
+      hasError = true;
+    }
+    if (salaryMax !== null && salaryMax < 0) {
+      setValidationError(editSalaryMaxEl, 'Salary max cannot be negative.');
+      hasError = true;
+    }
+    if (salaryMin !== null && salaryMax !== null && salaryMax < salaryMin) {
+      setValidationError(editSalaryMaxEl, 'Maximum salary cannot be less than minimum.');
+      hasError = true;
+    }
+
+    if (hasError) return;
+
+    const modalLoading = document.querySelector('#modal-loading-overlay') as HTMLElement;
+    
+    // Core payload setup
+    let payload: Record<string, any> = {
+      company_name: company,
+      job_title: title,
+      job_url: url || null,
+      work_type: workType || null,
+      location: loc || null,
+      salary_min: salaryMin,
+      salary_max: salaryMax,
+      applied_date: applied || null,
+      job_description: desc || null,
+      notes: notes || null
+    };
+
+    try {
+      // Analyze with Gemini AI if requested and description exists
+      if (analyzeWithAi && desc) {
+        modalLoading?.classList.remove('hidden');
+        
+        const response = await fetch('/api/analyze-job', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jobDescription: desc,
+            userSkills: userProfile?.skills || []
+          })
+        });
+
+        const aiResult = await response.json();
+        if (!response.ok || !aiResult || aiResult.error) {
+          throw new Error(aiResult?.error || 'AI analysis failed, please try again');
+        }
+
+        payload.ai_match_score = aiResult.match_score;
+        payload.ai_summary = aiResult.summary;
+        payload.ai_matching_skills = aiResult.matching_skills;
+        payload.ai_missing_skills = aiResult.missing_skills;
+        
+        if ((window as any).showToast) (window as any).showToast('AI analysis complete.', 'success');
+      }
+
+      // Update in Supabase
+      const { error } = await supabase
+        .from('applications')
+        .update(payload)
+        .eq('id', application.id);
+
+      if (error) throw error;
+
+      // Close modal
+      editModal?.classList.add('hidden');
+      
+      if ((window as any).showToast) (window as any).showToast('Application updated successfully.', 'success');
+      
+      // Reload page details
+      await loadApplicationData(application.id);
+
+    } catch (err: any) {
+      if ((window as any).showToast) (window as any).showToast(err.message || 'Error occurred while saving modifications.', 'error');
+    } finally {
+      modalLoading?.classList.add('hidden');
+    }
+  }
+</script>

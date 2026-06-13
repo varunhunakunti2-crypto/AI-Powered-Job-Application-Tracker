@@ -1,0 +1,792 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Add Job Application — AI Job Tracker">
+  <div class="min-h-screen bg-canvas-soft text-ink font-geist flex flex-col">
+    <!-- Top Nav bar -->
+    <header class="sticky top-0 z-40 bg-canvas border-b border-hairline backdrop-blur-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <a href="/dashboard" class="flex items-center gap-2 text-xs font-semibold text-body-text hover:text-ink transition-all">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Pipeline
+          </a>
+        </div>
+        <span class="text-sm font-semibold text-ink">New Application Setup</span>
+        <div class="flex items-center gap-3">
+          <!-- Theme Toggle Button -->
+          <button
+            id="theme-toggle-btn"
+            class="h-8 w-8 flex items-center justify-center border border-hairline rounded-sm text-xs font-medium hover:bg-canvas-soft-2 transition-all cursor-pointer text-ink"
+            aria-label="Toggle Theme"
+          >
+            <svg class="h-4 w-4 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+            <svg class="h-4 w-4 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 relative">
+      <!-- Loading Overlay -->
+      <div id="page-loading-overlay" class="absolute inset-0 bg-canvas-soft/80 z-30 flex flex-col items-center justify-center space-y-3 hidden animate-fade-in">
+        <svg class="animate-spin h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p class="text-xs font-semibold text-ink animate-pulse" id="loading-overlay-text">AI is reading the job...</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- Left: Form inputs (lg:col-span-7) -->
+        <div class="lg:col-span-7 space-y-6">
+          
+          <!-- Method Selector Tabs -->
+          <div class="border border-hairline rounded-md bg-canvas p-1 flex gap-2">
+            <button
+              id="tab-btn-ai"
+              class="flex-1 py-2 text-xs font-semibold rounded-sm bg-primary text-on-primary shadow-xs transition-all cursor-pointer animate-fade-in"
+            >
+              Method 1: Paste Job Description
+            </button>
+            <button
+              id="tab-btn-manual"
+              class="flex-1 py-2 text-xs font-semibold rounded-sm text-body-text hover:bg-canvas-soft-2 transition-all cursor-pointer animate-fade-in"
+            >
+              Method 2: Manual Form
+            </button>
+          </div>
+
+          <!-- Section 1: Paste Job Description (Method 1) -->
+          <div id="method-panel-ai" class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-4">
+            <h3 class="text-sm font-semibold tracking-tight text-ink border-b border-hairline pb-2 flex items-center gap-1.5">
+              <span class="text-on-primary bg-primary px-1.5 py-0.5 rounded-xs font-mono text-[10px]">AI</span>
+              Pasted Job Description
+            </h3>
+            <p class="text-xs text-mute-text leading-relaxed">
+              Paste the full text of the job description here. Gemini AI will match it against your skills and automatically fill out the job metadata form details for you.
+            </p>
+            
+            <textarea
+              id="raw-job-desc"
+              rows="12"
+              class="w-full p-3 bg-canvas-soft border border-hairline rounded-sm text-xs placeholder-mute-text focus:outline-none focus:border-hairline-strong transition-all resize-y"
+              placeholder="Paste full job description text here (including requirements, responsibilities, salary info, etc.)..."
+            ></textarea>
+
+            <button
+              id="analyze-ai-btn"
+              class="w-full h-10 px-4 bg-primary text-on-primary rounded-full text-xs font-medium hover:bg-primary/95 transition-all flex items-center justify-center cursor-pointer shadow-sm"
+            >
+              Analyze with Gemini AI
+            </button>
+          </div>
+
+          <!-- Section 2: Metadata Details Form (Method 2) -->
+          <div id="method-panel-manual" class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-4 hidden md:block">
+            <h3 class="text-sm font-semibold tracking-tight text-ink border-b border-hairline pb-2">
+              Job Details Form
+            </h3>
+            
+            <form id="job-metadata-form" class="space-y-4" novalidate>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label for="companyName" class="block text-xs font-semibold text-body-text">Company Name *</label>
+                  <input type="text" id="companyName" required class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none focus:border-hairline-strong transition-all" />
+                </div>
+                <div>
+                  <label for="jobTitle" class="block text-xs font-semibold text-body-text">Job Title *</label>
+                  <input type="text" id="jobTitle" required class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none focus:border-hairline-strong transition-all" />
+                </div>
+              </div>
+
+              <div>
+                <label for="jobUrl" class="block text-xs font-semibold text-body-text">Job Post URL</label>
+                <input type="url" id="jobUrl" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none focus:border-hairline-strong transition-all" placeholder="https://..." />
+              </div>
+
+              <div class="grid grid-cols-3 gap-3">
+                <div>
+                  <label for="status" class="block text-xs font-semibold text-body-text">Status</label>
+                  <select id="status" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-xs focus:outline-none focus:border-hairline-strong transition-all cursor-pointer">
+                    <option value="saved">Saved</option>
+                    <option value="applied" selected>Applied</option>
+                    <option value="interview">Interview</option>
+                    <option value="offer">Offer</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="workType" class="block text-xs font-semibold text-body-text">Work Type</label>
+                  <select id="workType" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-xs focus:outline-none focus:border-hairline-strong transition-all cursor-pointer">
+                    <option value="Remote">Remote</option>
+                    <option value="Hybrid">Hybrid</option>
+                    <option value="Onsite">Onsite</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="location" class="block text-xs font-semibold text-body-text">Location</label>
+                  <input type="text" id="location" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none focus:border-hairline-strong transition-all" placeholder="City, ST" />
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label for="salaryMin" class="block text-xs font-semibold text-body-text">Salary Min (Annual)</label>
+                  <input type="number" id="salaryMin" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none focus:border-hairline-strong transition-all" />
+                </div>
+                <div>
+                  <label for="salaryMax" class="block text-xs font-semibold text-body-text">Salary Max (Annual)</label>
+                  <input type="number" id="salaryMax" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none focus:border-hairline-strong transition-all" />
+                </div>
+              </div>
+
+              <div>
+                <label for="appliedDate" class="block text-xs font-semibold text-body-text">Applied Date</label>
+                <input type="date" id="appliedDate" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none" />
+              </div>
+
+              <div>
+                <label for="notes" class="block text-xs font-semibold text-body-text">My Notes</label>
+                <textarea id="notes" rows="3" class="mt-1 block w-full p-2.5 bg-canvas border border-hairline rounded-sm text-xs focus:outline-none focus:border-hairline-strong transition-all resize-none"></textarea>
+              </div>
+            </form>
+          </div>
+
+        </div>
+
+        <!-- Right: AI Evaluation results & Cover Letter (lg:col-span-5) -->
+        <div class="lg:col-span-5 space-y-6">
+          
+          <!-- AI evaluation panel (visible when analyzed) -->
+          <div id="ai-evaluation-panel" class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-6 hidden">
+            <h3 class="text-sm font-semibold tracking-tight text-ink border-b border-hairline pb-2 flex items-center justify-between">
+              <span class="flex items-center gap-1.5">
+                <span class="text-on-primary bg-primary px-1.5 py-0.5 rounded-xs font-mono text-[10px]">AI</span>
+                Gemini Match Report
+              </span>
+              <span class="text-xs font-semibold font-mono" id="eval-difficulty">--</span>
+            </h3>
+
+            <!-- Score Circular meter -->
+            <div class="flex items-center gap-6">
+              <div class="relative flex items-center justify-center w-20 h-20 rounded-full border-4" id="eval-score-circle">
+                <span class="text-lg font-bold" id="eval-score-value">0%</span>
+              </div>
+              <div class="space-y-1">
+                <p class="text-[10px] font-mono uppercase text-mute-text">Estimated Salary (Gemini)</p>
+                <p class="text-sm font-bold text-body-text" id="eval-salary">Calculating...</p>
+              </div>
+            </div>
+
+            <!-- Skills sets -->
+            <div class="space-y-4 pt-2 border-t border-hairline">
+              <div>
+                <p class="text-[10px] font-mono uppercase text-mute-text mb-2">Matching Skills</p>
+                <div class="flex flex-wrap gap-1.5" id="eval-matching-skills">
+                  <span class="text-xs text-mute-text italic">None detected.</span>
+                </div>
+              </div>
+              <div>
+                <p class="text-[10px] font-mono uppercase text-mute-text mb-2">Missing Skills</p>
+                <div class="flex flex-wrap gap-1.5" id="eval-missing-skills">
+                  <span class="text-xs text-mute-text italic">None detected.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Red flags section -->
+            <div class="space-y-2 pt-2 border-t border-hairline hidden" id="eval-flags-section">
+              <p class="text-[10px] font-mono uppercase text-red-600 mb-2">Potential Red Flags</p>
+              <ul class="text-xs space-y-1 text-red-700 bg-red-50 border border-red-200 p-3 rounded-md list-disc list-inside dark:bg-red-950/20 dark:border-red-900/50 dark:text-red-400" id="eval-flags">
+              </ul>
+            </div>
+          </div>
+
+          <!-- Cover Letter creation section -->
+          <div id="ai-cover-letter-panel" class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-4 hidden">
+            <h3 class="text-sm font-semibold tracking-tight text-ink border-b border-hairline pb-2 flex items-center gap-1.5">
+              <span class="text-on-primary bg-primary px-1.5 py-0.5 rounded-xs font-mono text-[10px]">AI</span>
+              Cover Letter
+            </h3>
+            
+            <button
+              id="generate-cover-btn"
+              class="w-full h-10 px-4 bg-primary text-on-primary rounded-full text-xs font-medium hover:bg-primary/95 transition-all flex items-center justify-center cursor-pointer"
+            >
+              Generate AI Cover Letter
+            </button>
+
+            <div id="cover-letter-output-box" class="hidden space-y-3">
+              <textarea
+                id="cover-letter-content"
+                rows="10"
+                class="w-full p-3 text-xs bg-canvas-soft border border-hairline rounded-sm focus:outline-none focus:border-hairline-strong transition-all font-sans resize-y"
+              ></textarea>
+              <div class="flex justify-between items-center gap-2">
+                <button
+                  type="button"
+                  id="copy-cover-btn"
+                  class="h-8 px-4 border border-hairline text-ink rounded-sm text-xs font-medium hover:bg-canvas-soft-2 transition-all cursor-pointer"
+                >
+                  Copy Cover Letter
+                </button>
+                <span class="text-[10px] text-mute-text">You can edit the text before saving</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Action buttons -->
+          <div class="bg-canvas border border-hairline p-6 rounded-md shadow-sm flex flex-col gap-3">
+            <button
+              id="save-application-btn"
+              class="w-full h-11 px-4 bg-primary text-on-primary rounded-full text-sm font-medium hover:bg-primary/95 shadow-sm transition-all flex items-center justify-center cursor-pointer"
+            >
+              Save Job Application
+            </button>
+            <a
+              href="/dashboard"
+              class="w-full h-11 px-4 border border-hairline text-ink rounded-full text-sm font-medium hover:bg-canvas-soft-2 transition-all flex items-center justify-center cursor-pointer"
+            >
+              Cancel
+            </a>
+          </div>
+
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+</Layout>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+
+  // State Variables
+  let currentUser: any = null;
+  let userProfile: any = null;
+  
+  // AI Results Cache
+  let aiMatchScore: number | null = null;
+  let aiSummary: string = '';
+  let aiMatchingSkills: string[] = [];
+  let aiMissingSkills: string[] = [];
+
+  // DOM Elements
+  const tabBtnAi = document.querySelector('#tab-btn-ai') as HTMLButtonElement;
+  const tabBtnManual = document.querySelector('#tab-btn-manual') as HTMLButtonElement;
+  const panelAi = document.querySelector('#method-panel-ai') as HTMLElement;
+  const panelManual = document.querySelector('#method-panel-manual') as HTMLElement;
+
+  // AI loading overlay
+  const loadingOverlay = document.querySelector('#page-loading-overlay') as HTMLElement;
+  const loadingText = document.querySelector('#loading-overlay-text') as HTMLElement;
+
+  // Input Elements
+  const rawJobDescTextarea = document.querySelector('#raw-job-desc') as HTMLTextAreaElement;
+  const analyzeAiBtn = document.querySelector('#analyze-ai-btn') as HTMLButtonElement;
+
+  // Manual Form Fields
+  const companyNameInput = document.querySelector('#companyName') as HTMLInputElement;
+  const jobTitleInput = document.querySelector('#jobTitle') as HTMLInputElement;
+  const jobUrlInput = document.querySelector('#jobUrl') as HTMLInputElement;
+  const statusSelect = document.querySelector('#status') as HTMLSelectElement;
+  const workTypeSelect = document.querySelector('#workType') as HTMLSelectElement;
+  const locationInput = document.querySelector('#location') as HTMLInputElement;
+  const salaryMinInput = document.querySelector('#salaryMin') as HTMLInputElement;
+  const salaryMaxInput = document.querySelector('#salaryMax') as HTMLInputElement;
+  const appliedDateInput = document.querySelector('#appliedDate') as HTMLInputElement;
+  const notesTextarea = document.querySelector('#notes') as HTMLTextAreaElement;
+
+  // Evaluation Panel displays
+  const evalPanel = document.querySelector('#ai-evaluation-panel') as HTMLElement;
+  const evalScoreCircle = document.querySelector('#eval-score-circle') as HTMLElement;
+  const evalScoreVal = document.querySelector('#eval-score-value') as HTMLElement;
+  const evalSalary = document.querySelector('#eval-salary') as HTMLElement;
+  const evalDifficulty = document.querySelector('#eval-difficulty') as HTMLElement;
+  const evalMatchingSkillsBox = document.querySelector('#eval-matching-skills') as HTMLElement;
+  const evalMissingSkillsBox = document.querySelector('#eval-missing-skills') as HTMLElement;
+  const evalFlagsSection = document.querySelector('#eval-flags-section') as HTMLElement;
+  const evalFlagsList = document.querySelector('#eval-flags') as HTMLElement;
+
+  // Cover Letter Panel
+  const coverLetterPanel = document.querySelector('#ai-cover-letter-panel') as HTMLElement;
+  const generateCoverBtn = document.querySelector('#generate-cover-btn') as HTMLButtonElement;
+  const coverOutputBox = document.querySelector('#cover-letter-output-box') as HTMLElement;
+  const coverContentTextarea = document.querySelector('#cover-letter-content') as HTMLTextAreaElement;
+  const copyCoverBtn = document.querySelector('#copy-cover-btn') as HTMLButtonElement;
+
+  // Primary Save Button
+  const saveApplicationBtn = document.querySelector('#save-application-btn') as HTMLButtonElement;
+
+  // Initialize Page
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Corner Theme Toggler Link setup
+    document.querySelector('#theme-toggle-btn')?.addEventListener('click', () => {
+      (window as any).toggleTheme();
+    });
+
+    // 1. Authenticate user
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.href = '/login';
+      return;
+    }
+    currentUser = session.user;
+
+    // 2. Default applied date to today
+    if (appliedDateInput) {
+      appliedDateInput.value = new Date().toISOString().split('T')[0];
+    }
+
+    // 3. Load profile skills (required for AI analysis matching)
+    showOverlay('Fetching details...');
+    await loadProfileSkills();
+    hideOverlay();
+
+    // 4. Setup Events
+    setupEventListeners();
+  });
+
+  // Inline Validation Helpers
+  function setValidationError(inputEl: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement, message: string) {
+    clearValidationError(inputEl);
+    inputEl.classList.add('border-error-deep', 'focus:border-error-deep', 'focus:ring-error-deep');
+    const errEl = document.createElement('p');
+    errEl.className = 'mt-1 text-xs text-error-deep font-medium inline-validation-error';
+    errEl.textContent = message;
+    inputEl.parentElement?.appendChild(errEl);
+  }
+
+  function clearValidationError(inputEl: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement) {
+    inputEl.classList.remove('border-error-deep', 'focus:border-error-deep', 'focus:ring-error-deep');
+    const parent = inputEl.parentElement;
+    if (parent) {
+      const existing = parent.querySelector('.inline-validation-error');
+      if (existing) existing.remove();
+    }
+  }
+
+  // Load Skills Profile from Supabase
+  async function loadProfileSkills() {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+      if (data) userProfile = data;
+    } catch (err: any) {
+      console.error('Error fetching profile skills:', err);
+      if ((window as any).showToast) (window as any).showToast(err.message || 'Error loading profile skills.', 'error');
+    }
+  }
+
+  // Setup UI event actions
+  function setupEventListeners() {
+    // Clear validation listeners
+    rawJobDescTextarea?.addEventListener('input', () => clearValidationError(rawJobDescTextarea));
+    companyNameInput?.addEventListener('input', () => clearValidationError(companyNameInput));
+    jobTitleInput?.addEventListener('input', () => clearValidationError(jobTitleInput));
+    salaryMinInput?.addEventListener('input', () => clearValidationError(salaryMinInput));
+    salaryMaxInput?.addEventListener('input', () => clearValidationError(salaryMaxInput));
+
+    // Tab Toggling
+    tabBtnAi?.addEventListener('click', () => {
+      tabBtnAi.className = 'flex-1 py-2 text-xs font-semibold rounded-sm bg-primary text-on-primary shadow-xs transition-all cursor-pointer';
+      tabBtnManual.className = 'flex-1 py-2 text-xs font-semibold rounded-sm text-body-text hover:bg-canvas-soft-2 transition-all cursor-pointer';
+      
+      panelAi?.classList.remove('hidden');
+      if (window.innerWidth < 768) {
+        panelManual?.classList.add('hidden');
+      }
+    });
+
+    tabBtnManual?.addEventListener('click', () => {
+      tabBtnManual.className = 'flex-1 py-2 text-xs font-semibold rounded-sm bg-primary text-on-primary shadow-xs transition-all cursor-pointer';
+      tabBtnAi.className = 'flex-1 py-2 text-xs font-semibold rounded-sm text-body-text hover:bg-canvas-soft-2 transition-all cursor-pointer';
+      
+      panelManual?.classList.remove('hidden');
+      if (window.innerWidth < 768) {
+        panelAi?.classList.add('hidden');
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth >= 768) {
+        panelManual?.classList.remove('hidden');
+        panelAi?.classList.remove('hidden');
+      } else {
+        if (tabBtnAi.classList.contains('bg-primary')) {
+          panelManual?.classList.add('hidden');
+        } else {
+          panelAi?.classList.add('hidden');
+        }
+      }
+    });
+
+    // Trigger AI Analysis Action
+    analyzeAiBtn?.addEventListener('click', handleAnalyzeWithAi);
+
+    // Generate Cover Letter Action
+    generateCoverBtn?.addEventListener('click', handleGenerateCoverLetter);
+
+    // Copy Cover Letter to clipboard
+    copyCoverBtn?.addEventListener('click', handleCopyCoverLetter);
+
+    // Save Application Action
+    saveApplicationBtn?.addEventListener('click', handleSaveApplication);
+  }
+
+  // AI Analyzer execution
+  async function handleAnalyzeWithAi() {
+    const rawText = rawJobDescTextarea?.value.trim();
+    clearValidationError(rawJobDescTextarea);
+
+    if (!rawText) {
+      setValidationError(rawJobDescTextarea, 'Please paste a job description text to analyze.');
+      return;
+    }
+
+    showOverlay('AI is reading the job...');
+
+    try {
+      const [evalRes, infoRes] = await Promise.all([
+        fetch('/api/analyze-job', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jobDescription: rawText,
+            userSkills: userProfile?.skills || []
+          })
+        }),
+        fetch('/api/extract-job-info', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rawText })
+        })
+      ]);
+
+      const evalData = await evalRes.json();
+      const infoData = await infoRes.json();
+
+      // Check for null result or failed responses
+      if (!evalRes.ok || !evalData || evalData.error) {
+        throw new Error(evalData?.error || 'AI analysis failed, please try again');
+      }
+      if (!infoRes.ok || !infoData || infoData.error) {
+        throw new Error(infoData?.error || 'AI details extraction failed, please try again');
+      }
+
+      // 1. Save results to state cache
+      aiMatchScore = evalData.match_score;
+      aiSummary = evalData.summary;
+      aiMatchingSkills = evalData.matching_skills || [];
+      aiMissingSkills = evalData.missing_skills || [];
+
+      // 2. Populate Manual form with extracted details
+      if (companyNameInput && infoData.company) {
+        companyNameInput.value = infoData.company;
+        clearValidationError(companyNameInput);
+      }
+      if (jobTitleInput && infoData.title) {
+        jobTitleInput.value = infoData.title;
+        clearValidationError(jobTitleInput);
+      }
+      if (locationInput && infoData.location) locationInput.value = infoData.location;
+      if (workTypeSelect && infoData.work_type) {
+        const val = infoData.work_type.toLowerCase();
+        if (val.includes('remote')) workTypeSelect.value = 'Remote';
+        else if (val.includes('hybrid')) workTypeSelect.value = 'Hybrid';
+        else if (val.includes('onsite') || val.includes('on-site')) workTypeSelect.value = 'Onsite';
+      }
+      if (salaryMinInput && infoData.salary_min) salaryMinInput.value = infoData.salary_min;
+      if (salaryMaxInput && infoData.salary_max) salaryMaxInput.value = infoData.salary_max;
+
+      // 3. Render Match Evaluation report
+      renderEvaluationReport(evalData);
+
+      // 4. Reveal panel sections
+      evalPanel?.classList.remove('hidden');
+      coverLetterPanel?.classList.remove('hidden');
+
+      if ((window as any).showToast) (window as any).showToast('AI analysis complete.', 'success');
+
+      if (window.innerWidth < 768) {
+        tabBtnManual?.click();
+      }
+
+    } catch (err: any) {
+      const msg = err.message || 'AI analysis failed, please try again';
+      if ((window as any).showToast) (window as any).showToast(msg, 'error');
+    } finally {
+      hideOverlay();
+    }
+  }
+
+  // Helper to render Match Evaluation UI details
+  function renderEvaluationReport(data: any) {
+    if (evalScoreVal) evalScoreVal.textContent = `${data.match_score}%`;
+    if (evalDifficulty) evalDifficulty.textContent = String(data.difficulty_level).toUpperCase();
+    
+    if (evalSalary) {
+      if (data.estimated_salary_min && data.estimated_salary_max) {
+        evalSalary.textContent = `$${data.estimated_salary_min.toLocaleString()} - $${data.estimated_salary_max.toLocaleString()}`;
+      } else {
+        evalSalary.textContent = 'Estimate not available';
+      }
+    }
+
+    const score = Number(data.match_score);
+    evalScoreCircle.className = 'relative flex items-center justify-center w-20 h-20 rounded-full border-4';
+    if (score >= 80) evalScoreCircle.classList.add('border-emerald-500', 'text-emerald-700');
+    else if (score >= 60) evalScoreCircle.classList.add('border-amber-500', 'text-amber-700');
+    else evalScoreCircle.classList.add('border-red-500', 'text-red-700');
+
+    if (evalMatchingSkillsBox) {
+      evalMatchingSkillsBox.innerHTML = '';
+      if (data.matching_skills && data.matching_skills.length > 0) {
+        data.matching_skills.forEach((skill: string) => {
+          const tag = document.createElement('span');
+          tag.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200';
+          tag.textContent = skill;
+          evalMatchingSkillsBox.appendChild(tag);
+        });
+      } else {
+        evalMatchingSkillsBox.innerHTML = '<span class="text-xs text-mute-text italic">None detected.</span>';
+      }
+    }
+
+    if (evalMissingSkillsBox) {
+      evalMissingSkillsBox.innerHTML = '';
+      if (data.missing_skills && data.missing_skills.length > 0) {
+        data.missing_skills.forEach((skill: string) => {
+          const tag = document.createElement('span');
+          tag.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200';
+          tag.textContent = skill;
+          evalMissingSkillsBox.appendChild(tag);
+        });
+      } else {
+        evalMissingSkillsBox.innerHTML = '<span class="text-xs text-mute-text italic">None detected.</span>';
+      }
+    }
+
+    if (evalFlagsList && evalFlagsSection) {
+      evalFlagsList.innerHTML = '';
+      if (data.red_flags && data.red_flags.length > 0) {
+        data.red_flags.forEach((flag: string) => {
+          const li = document.createElement('li');
+          li.textContent = flag;
+          evalFlagsList.appendChild(li);
+        });
+        evalFlagsSection.classList.remove('hidden');
+      } else {
+        evalFlagsSection.classList.add('hidden');
+      }
+    }
+  }
+
+  // Cover Letter generation execution
+  async function handleGenerateCoverLetter() {
+    const company = companyNameInput?.value.trim();
+    const title = jobTitleInput?.value.trim();
+
+    clearValidationError(companyNameInput);
+    clearValidationError(jobTitleInput);
+
+    if (!company) {
+      setValidationError(companyNameInput, 'Company name is required before cover letter creation.');
+      return;
+    }
+    if (!title) {
+      setValidationError(jobTitleInput, 'Job title is required before cover letter creation.');
+      return;
+    }
+
+    showOverlay('Gemini is writing the cover letter...');
+    
+    const jobPayload = {
+      company_name: company,
+      job_title: title,
+      job_description: rawJobDescTextarea?.value.trim() || null,
+      location: locationInput?.value.trim() || null,
+      work_type: workTypeSelect?.value || null
+    };
+
+    try {
+      const response = await fetch('/api/generate-cover-letter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          job: jobPayload,
+          profile: userProfile
+        })
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result || result.error) {
+        throw new Error(result?.error || 'AI analysis failed, please try again');
+      }
+
+      if (coverContentTextarea) {
+        coverContentTextarea.value = result.cover_letter;
+      }
+
+      coverOutputBox?.classList.remove('hidden');
+      generateCoverBtn?.classList.add('hidden');
+      if ((window as any).showToast) (window as any).showToast('Cover letter generated.', 'success');
+
+    } catch (err: any) {
+      if ((window as any).showToast) (window as any).showToast(err.message || 'Cover letter generation failed.', 'error');
+    } finally {
+      hideOverlay();
+    }
+  }
+
+  // Copy Cover letter to Clipboard
+  function handleCopyCoverLetter() {
+    const text = coverContentTextarea?.value || '';
+    if (!text) return;
+
+    navigator.clipboard.writeText(text).then(() => {
+      if ((window as any).showToast) (window as any).showToast('Cover letter copied.', 'success');
+      if (copyCoverBtn) {
+        const originalText = copyCoverBtn.textContent;
+        copyCoverBtn.textContent = 'Copied!';
+        copyCoverBtn.classList.add('bg-emerald-50', 'text-emerald-700', 'border-emerald-200');
+        setTimeout(() => {
+          copyCoverBtn.textContent = originalText;
+          copyCoverBtn.classList.remove('bg-emerald-50', 'text-emerald-700', 'border-emerald-200');
+        }, 1500);
+      }
+    });
+  }
+
+  // Save Application Submission
+  async function handleSaveApplication() {
+    const companyName = companyNameInput?.value.trim();
+    const jobTitle = jobTitleInput?.value.trim();
+    
+    // Clear validation borders
+    clearValidationError(companyNameInput);
+    clearValidationError(jobTitleInput);
+    clearValidationError(salaryMinInput);
+    clearValidationError(salaryMaxInput);
+
+    let hasError = false;
+    if (!companyName) {
+      setValidationError(companyNameInput, 'Company Name is required.');
+      hasError = true;
+    }
+    if (!jobTitle) {
+      setValidationError(jobTitleInput, 'Job Title is required.');
+      hasError = true;
+    }
+
+    const salaryMin = salaryMinInput?.value ? Number(salaryMinInput.value) : null;
+    const salaryMax = salaryMaxInput?.value ? Number(salaryMaxInput.value) : null;
+
+    if (salaryMin !== null && salaryMin < 0) {
+      setValidationError(salaryMinInput, 'Salary min cannot be negative.');
+      hasError = true;
+    }
+    if (salaryMax !== null && salaryMax < 0) {
+      setValidationError(salaryMaxInput, 'Salary max cannot be negative.');
+      hasError = true;
+    }
+    if (salaryMin !== null && salaryMax !== null && salaryMax < salaryMin) {
+      setValidationError(salaryMaxInput, 'Maximum salary cannot be less than minimum.');
+      hasError = true;
+    }
+
+    if (hasError) {
+      // Toggle to manual panel to show the validations
+      tabBtnManual?.click();
+      return;
+    }
+
+    showOverlay('Saving application...');
+
+    const jobUrl = jobUrlInput?.value.trim() || null;
+    const status = statusSelect?.value || 'applied';
+    const workType = workTypeSelect?.value || null;
+    const location = locationInput?.value.trim() || null;
+    const appliedDate = appliedDateInput?.value || null;
+    const notes = notesTextarea?.value.trim() || null;
+    const jobDescription = rawJobDescTextarea?.value.trim() || null;
+
+    try {
+      // 1. Insert Application into Supabase
+      const { data: appData, error: appError } = await supabase
+        .from('applications')
+        .insert({
+          user_id: currentUser.id,
+          company_name: companyName,
+          job_title: jobTitle,
+          job_url: jobUrl,
+          status,
+          work_type: workType,
+          location,
+          salary_min: salaryMin,
+          salary_max: salaryMax,
+          applied_date: appliedDate,
+          notes,
+          job_description: jobDescription,
+          ai_match_score: aiMatchScore,
+          ai_summary: aiSummary,
+          ai_matching_skills: aiMatchingSkills,
+          ai_missing_skills: aiMissingSkills
+        })
+        .select()
+        .single();
+
+      if (appError) throw appError;
+
+      // 2. Save cover letter if generated
+      const coverLetterContent = coverContentTextarea?.value.trim();
+      const isLetterGenerated = !coverOutputBox?.classList.contains('hidden');
+      
+      if (isLetterGenerated && coverLetterContent && appData) {
+        const { error: coverError } = await supabase
+          .from('cover_letters')
+          .insert({
+            application_id: appData.id,
+            user_id: currentUser.id,
+            content: coverLetterContent,
+            ai_generated: true
+          });
+
+        if (coverError) throw coverError;
+      }
+
+      if ((window as any).showToast) (window as any).showToast('Application saved.', 'success');
+      window.location.href = '/dashboard';
+
+    } catch (err: any) {
+      if ((window as any).showToast) (window as any).showToast(err.message || 'Error occurred while saving application details.', 'error');
+    } finally {
+      hideOverlay();
+    }
+  }
+
+  // Loading Overlay control functions
+  function showOverlay(text: string) {
+    if (loadingText) loadingText.textContent = text;
+    loadingOverlay?.classList.remove('hidden');
+  }
+
+  function hideOverlay() {
+    loadingOverlay?.classList.add('hidden');
+  }
+</script>

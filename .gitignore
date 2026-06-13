@@ -22,3 +22,10 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# agent settings & cache folders
+.agents/
+.claude/
+.kilocode/
+skills-lock.json
+skills/

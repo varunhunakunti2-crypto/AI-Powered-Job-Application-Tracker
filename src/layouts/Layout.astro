@@ -1,23 +1,108 @@
+---
+import '../styles/global.css';
+
+interface Props {
+	title?: string;
+}
+
+const { title = 'AI Job Tracker' } = Astro.props;
+---
 <!doctype html>
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3" />
+		<link rel="icon" type="image/svg+xml" sizes="128x128" href="/favicon.svg?v=3" />
+		<link rel="apple-touch-icon" href="/favicon.svg?v=3" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
+		<title>{title}</title>
+		
+		<!-- Theme initialization (Inline script executes immediately in head to block flash of light-mode) -->
+		<script is:inline>
+			(() => {
+				const getTheme = () => {
+					if (typeof localStorage !== 'undefined' && localStorage.getItem('theme')) {
+						return localStorage.getItem('theme');
+					}
+					return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+				};
+				const theme = getTheme();
+				if (theme === 'dark') {
+					document.documentElement.classList.add('dark');
+				} else {
+					document.documentElement.classList.remove('dark');
+				}
+			})();
+		</script>
 	</head>
-	<body>
+	<body class="bg-canvas-soft text-ink font-geist antialiased">
 		<slot />
+
+		<!-- Global Toast Container -->
+		<div id="toast-container" class="fixed bottom-5 right-5 z-[100] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
+
+		<script>
+			// Global Toast Notification Function
+			(window as any).showToast = function(message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') {
+				const container = document.querySelector('#toast-container');
+				if (!container) return;
+
+				const toast = document.createElement('div');
+				toast.className = 'bg-canvas border border-hairline p-4 rounded-md shadow-md flex items-center justify-between gap-3 text-xs font-medium translate-y-2 opacity-0 transition-all duration-300 pointer-events-auto';
+				
+				let typeColor = 'text-primary';
+				if (type === 'success') {
+					typeColor = 'text-emerald-600 border-l-2 border-emerald-500 pl-3';
+				} else if (type === 'error') {
+					typeColor = 'text-red-600 border-l-2 border-red-500 pl-3';
+				} else if (type === 'warning') {
+					typeColor = 'text-amber-600 border-l-2 border-amber-500 pl-3';
+				} else if (type === 'info') {
+					typeColor = 'text-link border-l-2 border-link pl-3';
+				}
+
+				toast.innerHTML = `
+					<span class="${typeColor} flex-1 leading-normal">${message}</span>
+					<button class="text-mute-text hover:text-ink text-[10px] font-bold font-mono focus:outline-none cursor-pointer p-1" aria-label="Dismiss">✕</button>
+				`;
+
+				// Close button event
+				toast.querySelector('button')?.addEventListener('click', () => {
+					toast.classList.add('opacity-0', 'translate-y-2');
+					setTimeout(() => toast.remove(), 300);
+				});
+
+				container.appendChild(toast);
+
+				// Trigger animation
+				setTimeout(() => {
+					toast.classList.remove('opacity-0', 'translate-y-2');
+				}, 10);
+
+				// Auto dismiss
+				setTimeout(() => {
+					if (toast.parentNode) {
+						toast.classList.add('opacity-0', 'translate-y-2');
+						setTimeout(() => toast.remove(), 300);
+					}
+				}, 4000);
+			};
+
+			// Global Theme Toggle Function
+			(window as any).toggleTheme = function() {
+				const html = document.documentElement;
+				const isDark = html.classList.contains('dark');
+				if (isDark) {
+					html.classList.remove('dark');
+					localStorage.setItem('theme', 'light');
+				} else {
+					html.classList.add('dark');
+					localStorage.setItem('theme', 'dark');
+				}
+				// Fire event for potential theme change updates in page components
+				window.dispatchEvent(new Event('theme-change'));
+			};
+		</script>
 	</body>
 </html>
-
-<style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		height: 100%;
-	}
-</style>

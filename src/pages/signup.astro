@@ -1,0 +1,270 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Create Your Account — AI Job Tracker">
+  <div class="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-canvas-soft relative overflow-hidden">
+    
+    <!-- Floating Top-Right Theme Toggle -->
+    <div class="absolute top-4 right-4 z-20">
+      <button
+        id="theme-toggle-btn"
+        class="h-8 w-8 flex items-center justify-center border border-hairline rounded-sm text-xs font-medium hover:bg-canvas-soft-2 transition-all cursor-pointer text-ink bg-canvas"
+        aria-label="Toggle Theme"
+      >
+        <svg class="h-4 w-4 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+        </svg>
+        <svg class="h-4 w-4 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Stark Mesh Gradient Background Blur (Vercel Style) -->
+    <div class="absolute top-[-20%] left-[50%] -translate-x-[50%] w-[600px] h-[300px] bg-gradient-to-r from-success-soft via-warning-soft to-error-soft rounded-full blur-[120px] opacity-40 pointer-events-none"></div>
+
+    <div class="sm:mx-auto sm:w-full sm:max-w-md z-10">
+      <h2 class="text-center text-3xl font-semibold tracking-tight text-ink font-geist">
+        Create your account.
+      </h2>
+      <p class="mt-2 text-center text-sm text-body-text">
+        Start tracking your job applications with AI power.
+      </p>
+    </div>
+
+    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md z-10 px-4 sm:px-0">
+      <div class="bg-canvas border border-hairline py-8 px-6 shadow-sm rounded-lg sm:px-10">
+        
+        <!-- Error Alert -->
+        <div id="error-alert" class="hidden mb-6 p-4 rounded-md bg-error-soft border border-error-deep/10 text-sm text-error-deep font-medium">
+          <span id="error-message"></span>
+        </div>
+
+        <form class="space-y-6" id="signup-form" novalidate>
+          <div>
+            <label for="fullName" class="block text-sm font-medium text-body-text">
+              Full name
+            </label>
+            <div class="mt-1">
+              <input
+                id="fullName"
+                name="fullName"
+                type="text"
+                autocomplete="name"
+                required
+                class="block w-full h-10 px-3 bg-canvas border border-hairline rounded-sm text-sm placeholder-mute-text focus:outline-none focus:border-hairline-strong focus:ring-1 focus:ring-hairline-strong transition-all"
+                placeholder="John Doe"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label for="email" class="block text-sm font-medium text-body-text">
+              Email address
+            </label>
+            <div class="mt-1">
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autocomplete="email"
+                required
+                class="block w-full h-10 px-3 bg-canvas border border-hairline rounded-sm text-sm placeholder-mute-text focus:outline-none focus:border-hairline-strong focus:ring-1 focus:ring-hairline-strong transition-all"
+                placeholder="you@example.com"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label for="password" class="block text-sm font-medium text-body-text">
+              Password
+            </label>
+            <div class="mt-1">
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autocomplete="new-password"
+                required
+                class="block w-full h-10 px-3 bg-canvas border border-hairline rounded-sm text-sm placeholder-mute-text focus:outline-none focus:border-hairline-strong focus:ring-1 focus:ring-hairline-strong transition-all"
+                placeholder="Min. 6 characters"
+              />
+            </div>
+          </div>
+
+          <div>
+            <button
+              type="submit"
+              id="submit-btn"
+              class="w-full flex justify-center items-center h-10 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-on-primary bg-primary hover:bg-primary/95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all"
+            >
+              <svg
+                id="submit-spinner"
+                class="hidden animate-spin -ml-1 mr-2 h-4 w-4 text-on-primary"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span id="submit-text">Create Account</span>
+            </button>
+          </div>
+        </form>
+
+        <div class="mt-6">
+          <div class="relative flex justify-center text-xs">
+            <span class="bg-canvas px-2 text-mute-text">
+              Already have an account? 
+              <a href="/login" class="font-medium text-link hover:text-link-deep transition-all">Sign in</a>
+            </span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { supabase } from '../lib/supabase';
+
+  // DOM Elements
+  const form = document.querySelector('#signup-form') as HTMLFormElement;
+  const fullNameInput = document.querySelector('#fullName') as HTMLInputElement;
+  const emailInput = document.querySelector('#email') as HTMLInputElement;
+  const passwordInput = document.querySelector('#password') as HTMLInputElement;
+  const submitButton = document.querySelector('#submit-btn') as HTMLButtonElement;
+  const spinner = document.querySelector('#submit-spinner') as HTMLElement;
+  const btnText = document.querySelector('#submit-text') as HTMLElement;
+  const errorAlert = document.querySelector('#error-alert') as HTMLElement;
+  const errorMessage = document.querySelector('#error-message') as HTMLElement;
+
+  // Initialize: Auto-redirect if session is active
+  document.addEventListener('DOMContentLoaded', async () => {
+    document.querySelector('#theme-toggle-btn')?.addEventListener('click', () => {
+      (window as any).toggleTheme();
+    });
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        window.location.href = '/dashboard';
+      }
+    } catch (err) {
+      console.error('Error fetching session:', err);
+    }
+  });
+
+  // Inline Validation Helpers
+  function setValidationError(inputEl: HTMLInputElement, message: string) {
+    clearValidationError(inputEl);
+    inputEl.classList.add('border-error-deep', 'focus:border-error-deep', 'focus:ring-error-deep');
+    const errEl = document.createElement('p');
+    errEl.className = 'mt-1.5 text-xs text-error-deep font-medium inline-validation-error';
+    errEl.textContent = message;
+    inputEl.parentElement?.appendChild(errEl);
+  }
+
+  function clearValidationError(inputEl: HTMLInputElement) {
+    inputEl.classList.remove('border-error-deep', 'focus:border-error-deep', 'focus:ring-error-deep');
+    const parent = inputEl.parentElement;
+    if (parent) {
+      const existing = parent.querySelector('.inline-validation-error');
+      if (existing) existing.remove();
+    }
+  }
+
+  // Clear errors dynamically on input
+  fullNameInput?.addEventListener('input', () => clearValidationError(fullNameInput));
+  emailInput?.addEventListener('input', () => clearValidationError(emailInput));
+  passwordInput?.addEventListener('input', () => clearValidationError(passwordInput));
+
+  // Handle Form Submission
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Reset error banner
+    errorAlert?.classList.add('hidden');
+    if (errorMessage) errorMessage.textContent = '';
+
+    const fullName = fullNameInput?.value.trim() || '';
+    const email = emailInput?.value.trim() || '';
+    const password = passwordInput?.value || '';
+
+    // Validate inputs
+    let hasError = false;
+    clearValidationError(fullNameInput);
+    clearValidationError(emailInput);
+    clearValidationError(passwordInput);
+
+    if (!fullName) {
+      setValidationError(fullNameInput, 'Full name is required.');
+      hasError = true;
+    }
+
+    if (!email) {
+      setValidationError(emailInput, 'Email address is required.');
+      hasError = true;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setValidationError(emailInput, 'Please enter a valid email address.');
+      hasError = true;
+    }
+
+    if (!password) {
+      setValidationError(passwordInput, 'Password is required.');
+      hasError = true;
+    } else if (password.length < 6) {
+      setValidationError(passwordInput, 'Password must be at least 6 characters.');
+      hasError = true;
+    }
+
+    if (hasError) return;
+
+    // Show Loading state
+    if (submitButton) submitButton.disabled = true;
+    spinner?.classList.remove('hidden');
+    if (btnText) btnText.textContent = 'Creating account...';
+
+    try {
+      // 1. Sign up user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+          }
+        }
+      });
+
+      if (authError) throw authError;
+      if (!authData?.user) throw new Error('No user data returned from authentication.');
+
+      // 2. Insert/Upsert user profile manually into 'profiles' table
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: authData.user.id,
+        full_name: fullName,
+        email: email,
+      });
+
+      if (profileError) throw profileError;
+
+      // Redirect to login page showing registration success notification
+      if ((window as any).showToast) (window as any).showToast('Registration successful!', 'success');
+      window.location.href = '/login?registered=true';
+
+    } catch (err: any) {
+      const errMsg = err.message || 'An unexpected error occurred during signup.';
+      if (errorMessage) errorMessage.textContent = errMsg;
+      errorAlert?.classList.remove('hidden');
+      if ((window as any).showToast) (window as any).showToast(errMsg, 'error');
+      
+      if (submitButton) submitButton.disabled = false;
+      spinner?.classList.add('hidden');
+      if (btnText) btnText.textContent = 'Create Account';
+    }
+  });
+</script>

@@ -1,0 +1,782 @@
+---
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout title="Dashboard — AI Job Tracker">
+  <div class="min-h-screen bg-canvas-soft text-ink font-geist flex flex-col">
+    <!-- Navbar -->
+    <header class="sticky top-0 z-40 bg-canvas border-b border-hairline backdrop-blur-md">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <div class="flex items-center gap-6">
+          <a href="/dashboard" class="text-xl font-bold tracking-tight text-ink flex items-center gap-2">
+            <span class="text-on-primary bg-primary px-2 py-0.5 rounded-sm font-mono text-sm">AI</span>
+            Job Tracker
+          </a>
+          <nav class="flex items-center gap-4">
+            <a href="/dashboard" class="text-xs font-semibold text-ink border-b-2 border-primary py-5 -mb-5 transition-all">Pipeline</a>
+            <a href="/dashboard/analytics" class="text-xs font-medium text-body-text hover:text-ink transition-all">Analytics</a>
+            <a href="/dashboard/profile" class="text-xs font-medium text-body-text hover:text-ink transition-all">Profile</a>
+          </nav>
+        </div>
+        <div class="flex items-center gap-4">
+          <!-- Theme Toggle Button -->
+          <button
+            id="theme-toggle-btn"
+            class="h-8 w-8 flex items-center justify-center border border-hairline rounded-sm text-xs font-medium hover:bg-canvas-soft-2 transition-all cursor-pointer text-ink"
+            aria-label="Toggle Theme"
+          >
+            <svg class="h-4 w-4 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
+            <svg class="h-4 w-4 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+            </svg>
+          </button>
+          <div class="text-right hidden sm:block">
+            <p class="text-xs font-semibold text-ink" id="profile-name">Loading Profile...</p>
+            <p class="text-[10px] text-mute-text" id="profile-email">loading@user.com</p>
+          </div>
+          <button
+            id="signout-btn"
+            class="h-8 px-3 border border-hairline rounded-sm text-xs font-medium hover:bg-canvas-soft-2 transition-all cursor-pointer"
+          >
+            Sign Out
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Global Page Loading Indicator -->
+    <div id="page-loader" class="flex-1 flex flex-col items-center justify-center py-32 space-y-4">
+      <svg class="animate-spin h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <p class="text-xs font-semibold text-body-text animate-pulse">Loading job tracker pipeline...</p>
+    </div>
+
+    <!-- Main Workspace Content (Hidden initially during fetch) -->
+    <main id="dashboard-content" class="hidden flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        
+        <!-- Left 3 columns: Stats & Kanban -->
+        <div class="lg:col-span-3 space-y-8">
+          
+          <!-- Stats Row -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <!-- Total Applications -->
+            <div class="bg-canvas border border-hairline p-4 rounded-md shadow-sm">
+              <p class="text-[10px] font-mono uppercase tracking-wider text-mute-text">Total Applications</p>
+              <p class="text-2xl font-bold mt-1 text-ink" id="stat-total">0</p>
+            </div>
+            <!-- Interview Rate -->
+            <div class="bg-canvas border border-hairline p-4 rounded-md shadow-sm">
+              <p class="text-[10px] font-mono uppercase tracking-wider text-mute-text">Interview Rate</p>
+              <p class="text-2xl font-bold mt-1 text-ink" id="stat-interview-rate">0%</p>
+            </div>
+            <!-- Offer Rate -->
+            <div class="bg-canvas border border-hairline p-4 rounded-md shadow-sm">
+              <p class="text-[10px] font-mono uppercase tracking-wider text-mute-text">Offer Rate</p>
+              <p class="text-2xl font-bold mt-1 text-ink" id="stat-offer-rate">0%</p>
+            </div>
+            <!-- Added This Week -->
+            <div class="bg-canvas border border-hairline p-4 rounded-md shadow-sm">
+              <p class="text-[10px] font-mono uppercase tracking-wider text-mute-text">This Week</p>
+              <p class="text-2xl font-bold mt-1 text-ink" id="stat-this-week">0</p>
+            </div>
+          </div>
+
+          <!-- Kanban Board Header -->
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold tracking-tight text-ink">Pipeline</h3>
+            <span class="text-xs text-mute-text">Drag and drop cards or click to view details</span>
+          </div>
+
+          <!-- Master Empty State Card (Visible when userApplications.length === 0) -->
+          <div id="master-empty-state" class="hidden border border-dashed border-hairline py-20 text-center rounded-md bg-canvas shadow-sm space-y-4">
+            <p class="text-sm font-semibold text-ink">No applications tracked yet</p>
+            <p class="text-xs text-mute-text">Add your target roles and use Gemini AI to scan alignment.</p>
+            <a href="/dashboard/add" class="inline-flex h-9 px-5 items-center justify-center bg-primary text-on-primary text-xs font-semibold rounded-full hover:bg-primary/95 transition-all shadow-sm">
+              Add your first application
+            </a>
+          </div>
+
+          <!-- Kanban Board -->
+          <div id="kanban-board" class="grid grid-cols-1 md:grid-cols-5 gap-4 overflow-x-auto pb-4 items-start select-none">
+            <!-- Column 1: Saved -->
+            <div class="flex flex-col min-w-[200px] bg-canvas border border-hairline p-3 rounded-md shadow-sm" data-status="saved">
+              <div class="flex items-center justify-between mb-3 border-b border-hairline pb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-body-text">Saved</span>
+                <span class="text-xs font-mono px-2 py-0.5 rounded-full bg-canvas-soft-2 text-body-text" id="count-saved">0</span>
+              </div>
+              <div class="space-y-3 min-h-[450px] kanban-col transition-colors duration-200" id="col-saved"></div>
+            </div>
+
+            <!-- Column 2: Applied -->
+            <div class="flex flex-col min-w-[200px] bg-canvas border border-hairline p-3 rounded-md shadow-sm" data-status="applied">
+              <div class="flex items-center justify-between mb-3 border-b border-hairline pb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-body-text">Applied</span>
+                <span class="text-xs font-mono px-2 py-0.5 rounded-full bg-canvas-soft-2 text-body-text" id="count-applied">0</span>
+              </div>
+              <div class="space-y-3 min-h-[450px] kanban-col transition-colors duration-200" id="col-applied"></div>
+            </div>
+
+            <!-- Column 3: Interview -->
+            <div class="flex flex-col min-w-[200px] bg-canvas border border-hairline p-3 rounded-md shadow-sm" data-status="interview">
+              <div class="flex items-center justify-between mb-3 border-b border-hairline pb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-body-text">Interview</span>
+                <span class="text-xs font-mono px-2 py-0.5 rounded-full bg-canvas-soft-2 text-body-text" id="count-interview">0</span>
+              </div>
+              <div class="space-y-3 min-h-[450px] kanban-col transition-colors duration-200" id="col-interview"></div>
+            </div>
+
+            <!-- Column 4: Offer -->
+            <div class="flex flex-col min-w-[200px] bg-canvas border border-hairline p-3 rounded-md shadow-sm" data-status="offer">
+              <div class="flex items-center justify-between mb-3 border-b border-hairline pb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-body-text">Offer</span>
+                <span class="text-xs font-mono px-2 py-0.5 rounded-full bg-canvas-soft-2 text-body-text" id="count-offer">0</span>
+              </div>
+              <div class="space-y-3 min-h-[450px] kanban-col transition-colors duration-200" id="col-offer"></div>
+            </div>
+
+            <!-- Column 5: Rejected -->
+            <div class="flex flex-col min-w-[200px] bg-canvas border border-hairline p-3 rounded-md shadow-sm" data-status="rejected">
+              <div class="flex items-center justify-between mb-3 border-b border-hairline pb-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-body-text">Rejected</span>
+                <span class="text-xs font-mono px-2 py-0.5 rounded-full bg-canvas-soft-2 text-body-text" id="count-rejected">0</span>
+              </div>
+              <div class="space-y-3 min-h-[450px] kanban-col transition-colors duration-200" id="col-rejected"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Right sidebar column: Profile, Skills & AI Insights -->
+        <div class="lg:col-span-1 space-y-6">
+          <!-- Profile & Skills Card -->
+          <div class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-4">
+            <h4 class="text-sm font-semibold tracking-tight text-ink border-b border-hairline pb-2 flex items-center justify-between">
+              Skills Profile
+              <button id="edit-skills-btn" class="text-xs text-link hover:text-link-deep transition-all cursor-pointer font-medium">Edit</button>
+            </h4>
+            <div>
+              <p class="text-xs text-mute-text uppercase font-mono tracking-wider">Target Role</p>
+              <p class="text-sm font-medium mt-0.5 text-body-text" id="target-role-display">Not set</p>
+            </div>
+            <div>
+              <p class="text-xs text-mute-text uppercase font-mono tracking-wider">Target Salary</p>
+              <p class="text-sm font-medium mt-0.5 text-body-text" id="target-salary-display">Not set</p>
+            </div>
+            <div>
+              <p class="text-xs text-mute-text uppercase font-mono tracking-wider mb-2">My Skills</p>
+              <div class="flex flex-wrap gap-1.5" id="profile-skills-tags">
+                <span class="text-[11px] text-mute-text italic">No skills added yet.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- AI Insights Card -->
+          <div class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-6">
+            <h4 class="text-sm font-semibold tracking-tight text-ink border-b border-hairline pb-2 flex items-center gap-1.5">
+              <span class="text-on-primary bg-primary px-1.5 py-0.5 rounded-xs font-mono text-[10px]">AI</span>
+              Insights
+            </h4>
+            
+            <!-- Insight 1: Top Missing Skills -->
+            <div class="space-y-2">
+              <p class="text-xs font-semibold text-body-text">Top missing skills across jobs</p>
+              <div class="flex flex-wrap gap-1" id="insight-missing-skills">
+                <span class="text-xs text-mute-text italic">Add applications to compile insights.</span>
+              </div>
+            </div>
+
+            <!-- Insight 2: Best Companies Responding -->
+            <div class="space-y-2">
+              <p class="text-xs font-semibold text-body-text">Best companies responding</p>
+              <ul class="text-xs space-y-1 text-body-text list-disc list-inside" id="insight-companies">
+                <li class="text-mute-text italic list-none">No active responses yet.</li>
+              </ul>
+            </div>
+
+            <!-- Insight 3: Recommended Action -->
+            <div class="space-y-2 border-t border-hairline pt-4">
+              <p class="text-xs font-semibold text-body-text">Recommended action</p>
+              <p class="text-xs text-body-text bg-canvas-soft border border-hairline p-2.5 rounded-sm" id="insight-recommendation">
+                Add skills to your profile or insert job applications to receive recommendations.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+
+    <!-- Quick Add Button (Floating Link to Page) -->
+    <a
+      id="floating-add-btn"
+      href="/dashboard/add"
+      class="fixed bottom-6 right-6 h-12 w-12 rounded-full bg-primary text-on-primary shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 flex items-center justify-center cursor-pointer transition-all z-30"
+      title="Add new job application"
+    >
+      <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+      </svg>
+    </a>
+
+    <!-- MODAL 3: Edit Profile/Skills -->
+    <div id="skills-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
+      <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Overlay -->
+        <div class="fixed inset-0 transition-opacity bg-primary/20 backdrop-blur-xs" id="skills-overlay"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+        <!-- Modal Card -->
+        <div class="inline-block align-bottom bg-canvas border border-hairline rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+          <div class="bg-canvas px-6 pt-5 pb-4 sm:p-6">
+            <h3 class="text-lg font-semibold tracking-tight text-ink border-b border-hairline pb-3">
+              Edit Skills Profile
+            </h3>
+            <form id="skills-form" class="mt-4 space-y-4" novalidate>
+              <div>
+                <label for="targetRole" class="block text-xs font-semibold text-body-text">Target Job Role</label>
+                <input type="text" id="targetRole" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none focus:border-hairline-strong transition-all" placeholder="e.g. Senior React Developer" />
+              </div>
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <label for="targetSalaryMin" class="block text-xs font-semibold text-body-text">Min Salary target</label>
+                  <input type="number" id="targetSalaryMin" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none focus:border-hairline-strong transition-all" placeholder="e.g. 100000" />
+                </div>
+                <div>
+                  <label for="targetSalaryMax" class="block text-xs font-semibold text-body-text">Max Salary target</label>
+                  <input type="number" id="targetSalaryMax" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none focus:border-hairline-strong transition-all" placeholder="e.g. 150000" />
+                </div>
+              </div>
+              <div>
+                <label for="skillsList" class="block text-xs font-semibold text-body-text font-geist">My Core Skills (Comma-separated)</label>
+                <textarea id="skillsList" rows="4" class="mt-1 block w-full p-2.5 bg-canvas border border-hairline rounded-sm text-xs focus:outline-none focus:border-hairline-strong transition-all resize-none" placeholder="React, TypeScript, Node.js, Next.js, CSS, Python, SQL..."></textarea>
+              </div>
+            </form>
+          </div>
+          <div class="bg-canvas-soft-2 px-6 py-4 flex flex-row-reverse gap-3 border-t border-hairline">
+            <button type="button" id="save-skills-btn" class="h-9 px-4 bg-primary text-on-primary rounded-full text-xs font-medium hover:bg-primary/95 transition-all cursor-pointer">
+              Save Profile
+            </button>
+            <button type="button" id="close-skills-btn" class="h-9 px-4 bg-canvas border border-hairline text-ink rounded-full text-xs font-medium hover:bg-canvas-soft-2 transition-all cursor-pointer">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</Layout>
+
+<script>
+  import { supabase } from '../../lib/supabase';
+
+  // State
+  let currentUser: any = null;
+  let userProfile: any = null;
+  let userApplications: any[] = [];
+
+  // DOM Elements
+  const pageLoader = document.querySelector('#page-loader') as HTMLElement;
+  const dashboardContent = document.querySelector('#dashboard-content') as HTMLElement;
+
+  const profileName = document.querySelector('#profile-name') as HTMLElement;
+  const profileEmail = document.querySelector('#profile-email') as HTMLElement;
+  const signoutBtn = document.querySelector('#signout-btn') as HTMLButtonElement;
+
+  // Modals
+  const skillsModal = document.querySelector('#skills-modal') as HTMLElement;
+
+  // Trigger elements
+  const editSkillsBtn = document.querySelector('#edit-skills-btn') as HTMLButtonElement;
+
+  // Form Save buttons
+  const saveSkillsBtn = document.querySelector('#save-skills-btn') as HTMLButtonElement;
+
+  // Close buttons
+  const closeSkillsBtn = document.querySelector('#close-skills-btn') as HTMLButtonElement;
+
+  // Modal overlays
+  const skillsOverlay = document.querySelector('#skills-overlay') as HTMLElement;
+
+  // Initialize page
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Corner Theme Toggler Link setup
+    document.querySelector('#theme-toggle-btn')?.addEventListener('click', () => {
+      (window as any).toggleTheme();
+    });
+
+    // 1. Authenticate user
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      window.location.href = '/login';
+      return;
+    }
+    currentUser = session.user;
+    
+    // 2. Load User Profile & Applications in parallel
+    await Promise.all([
+      loadUserProfile(),
+      loadApplications()
+    ]);
+
+    // 3. Set up event listeners
+    setupEvents();
+
+    // 4. Reveal content workspace
+    pageLoader?.classList.add('hidden');
+    dashboardContent?.classList.remove('hidden');
+  });
+
+  // Load Profile from DB
+  async function loadUserProfile() {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      if (data) {
+        userProfile = data;
+      } else {
+        // Fallback: create empty profile if missing
+        const { data: insertedData, error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: currentUser.id,
+            email: currentUser.email,
+            full_name: currentUser.user_metadata?.full_name || 'Guest User'
+          })
+          .select()
+          .single();
+        if (insertError) throw insertError;
+        userProfile = insertedData;
+      }
+
+      // Display Metadata
+      if (profileName) profileName.textContent = userProfile.full_name || 'Guest User';
+      if (profileEmail) profileEmail.textContent = userProfile.email || currentUser.email;
+
+      // Update sidebar
+      const targetRole = document.querySelector('#target-role-display') as HTMLElement;
+      const targetSalary = document.querySelector('#target-salary-display') as HTMLElement;
+      const skillsTags = document.querySelector('#profile-skills-tags') as HTMLElement;
+
+      if (targetRole) targetRole.textContent = userProfile.target_role || 'Not set';
+      if (targetSalary) {
+        if (userProfile.target_salary_min && userProfile.target_salary_max) {
+          targetSalary.textContent = `$${Number(userProfile.target_salary_min).toLocaleString()} - $${Number(userProfile.target_salary_max).toLocaleString()}`;
+        } else if (userProfile.target_salary_min) {
+          targetSalary.textContent = `$${Number(userProfile.target_salary_min).toLocaleString()}+`;
+        } else {
+          targetSalary.textContent = 'Not set';
+        }
+      }
+
+      if (skillsTags) {
+        skillsTags.innerHTML = '';
+        if (userProfile.skills && userProfile.skills.length > 0) {
+          userProfile.skills.forEach((skill: string) => {
+            const tag = document.createElement('span');
+            tag.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary/5 border border-primary/10 text-primary';
+            tag.textContent = skill;
+            skillsTags.appendChild(tag);
+          });
+        } else {
+          skillsTags.innerHTML = '<span class="text-[11px] text-mute-text italic">No skills added yet.</span>';
+        }
+      }
+    } catch (err: any) {
+      console.error('Error loading user profile:', err);
+      if ((window as any).showToast) (window as any).showToast(err.message || 'Error loading profile.', 'error');
+    }
+  }
+
+  // Load User Applications from Supabase
+  async function loadApplications() {
+    try {
+      const { data, error } = await supabase
+        .from('applications')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      userApplications = data || [];
+
+      // Render Empty state vs Kanban board
+      const board = document.querySelector('#kanban-board') as HTMLElement;
+      const emptyState = document.querySelector('#master-empty-state') as HTMLElement;
+
+      if (userApplications.length === 0) {
+        board?.classList.add('hidden');
+        emptyState?.classList.remove('hidden');
+      } else {
+        emptyState?.classList.add('hidden');
+        board?.classList.remove('hidden');
+
+        // Update UI panels
+        updateStats();
+        renderKanban();
+        renderAIInsights();
+      }
+    } catch (err: any) {
+      console.error('Error loading applications:', err);
+      if ((window as any).showToast) (window as any).showToast(err.message || 'Error loading application pipeline.', 'error');
+    }
+  }
+
+  // Update Stats row values
+  function updateStats() {
+    const totalEl = document.querySelector('#stat-total') as HTMLElement;
+    const interviewRateEl = document.querySelector('#stat-interview-rate') as HTMLElement;
+    const offerRateEl = document.querySelector('#stat-offer-rate') as HTMLElement;
+    const thisWeekEl = document.querySelector('#stat-this-week') as HTMLElement;
+
+    const total = userApplications.length;
+    const interviews = userApplications.filter(a => ['interview', 'offer'].includes(a.status)).length;
+    const offers = userApplications.filter(a => a.status === 'offer').length;
+
+    // Added this week calc
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const thisWeek = userApplications.filter(a => new Date(a.created_at) >= sevenDaysAgo).length;
+
+    if (totalEl) totalEl.textContent = String(total);
+    if (interviewRateEl) interviewRateEl.textContent = total > 0 ? `${Math.round((interviews / total) * 100)}%` : '0%';
+    if (offerRateEl) offerRateEl.textContent = total > 0 ? `${Math.round((offers / total) * 100)}%` : '0%';
+    if (thisWeekEl) thisWeekEl.textContent = String(thisWeek);
+  }
+
+  // Render Kanban Board columns
+  function renderKanban() {
+    const statuses = ['saved', 'applied', 'interview', 'offer', 'rejected'];
+
+    statuses.forEach(status => {
+      const col = document.querySelector(`#col-${status}`) as HTMLElement;
+      const countEl = document.querySelector(`#count-${status}`) as HTMLElement;
+      
+      if (!col) return;
+      col.innerHTML = '';
+
+      const list = userApplications.filter(a => a.status === status);
+      if (countEl) countEl.textContent = String(list.length);
+
+      if (list.length === 0) {
+        // Empty state indicator inside column
+        const empty = document.createElement('div');
+        empty.className = 'border border-dashed border-hairline py-8 text-center text-xs text-mute-text rounded-sm select-none';
+        empty.textContent = 'Empty';
+        col.appendChild(empty);
+        return;
+      }
+
+      list.forEach(app => {
+        const card = document.createElement('div');
+        card.className = 'bg-canvas border border-hairline p-3.5 rounded-md shadow-xs hover:border-hairline-strong hover:shadow-sm transition-all cursor-pointer select-none relative';
+        card.draggable = true;
+        card.setAttribute('data-id', app.id);
+
+        // Score badge styling
+        let scoreBadge = '';
+        if (app.ai_match_score !== null && app.ai_match_score !== undefined) {
+          const score = Number(app.ai_match_score);
+          let badgeColor = 'bg-red-50 text-red-700 border-red-200';
+          if (score >= 80) badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+          else if (score >= 60) badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
+
+          scoreBadge = `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full border ${badgeColor}">${score}% Match</span>`;
+        }
+
+        // Formatted date string
+        const dateStr = app.applied_date 
+          ? new Date(app.applied_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          : new Date(app.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+        card.innerHTML = `
+          <div class="flex justify-between items-start gap-2">
+            <h5 class="text-xs font-bold text-ink truncate max-w-[120px]" title="${app.company_name}">${app.company_name}</h5>
+            ${scoreBadge}
+          </div>
+          <p class="text-xs text-body-text font-medium mt-1 truncate" title="${app.job_title}">${app.job_title}</p>
+          <div class="flex items-center justify-between mt-3 text-[10px] text-mute-text">
+            <span>${dateStr}</span>
+            <span>${app.location || ''}</span>
+          </div>
+        `;
+
+        // Click Event -> redirect to details page
+        card.addEventListener('click', () => {
+          window.location.href = `/dashboard/applications/placeholder?id=${app.id}`;
+        });
+
+        // HTML5 Drag & Drop handlers
+        card.addEventListener('dragstart', (e: any) => {
+          e.dataTransfer.setData('text/plain', app.id);
+          card.classList.add('opacity-40');
+        });
+        card.addEventListener('dragend', () => {
+          card.classList.remove('opacity-40');
+        });
+
+        col.appendChild(card);
+      });
+    });
+
+    // Column drop zones
+    document.querySelectorAll('.kanban-col').forEach((col: any) => {
+      col.addEventListener('dragover', (e: Event) => {
+        e.preventDefault();
+        col.parentElement.classList.add('bg-canvas-soft-2/50');
+      });
+
+      col.addEventListener('dragleave', () => {
+        col.parentElement.classList.remove('bg-canvas-soft-2/50');
+      });
+
+      col.addEventListener('drop', async (e: any) => {
+        e.preventDefault();
+        col.parentElement.classList.remove('bg-canvas-soft-2/50');
+        
+        const appId = e.dataTransfer.getData('text/plain');
+        const nextStatus = col.parentElement.getAttribute('data-status');
+
+        if (!appId || !nextStatus) return;
+
+        // Perform status update
+        try {
+          const { error } = await supabase
+            .from('applications')
+            .update({ status: nextStatus })
+            .eq('id', appId);
+
+          if (error) throw error;
+          
+          if ((window as any).showToast) {
+            const formatted = nextStatus.charAt(0).toUpperCase() + nextStatus.slice(1);
+            (window as any).showToast(`Application pipeline status changed to ${formatted}.`, 'success');
+          }
+
+          await loadApplications();
+        } catch (err: any) {
+          console.error('Error dragging application:', err);
+          if ((window as any).showToast) (window as any).showToast(err.message || 'Failed to update pipeline status.', 'error');
+        }
+      });
+    });
+  }
+
+  // Compile and Render AI Insights panel
+  function renderAIInsights() {
+    const missingEl = document.querySelector('#insight-missing-skills') as HTMLElement;
+    const companiesEl = document.querySelector('#insight-companies') as HTMLElement;
+    const recommendationEl = document.querySelector('#insight-recommendation') as HTMLElement;
+
+    // 1. Top Missing Skills Counter
+    const missingSkillsFreq: Record<string, number> = {};
+    userApplications.forEach(app => {
+      if (app.ai_missing_skills && app.ai_missing_skills.length > 0) {
+        app.ai_missing_skills.forEach((skill: string) => {
+          const cleaned = skill.trim();
+          missingSkillsFreq[cleaned] = (missingSkillsFreq[cleaned] || 0) + 1;
+        });
+      }
+    });
+
+    // Sort missing skills
+    const sortedMissing = Object.entries(missingSkillsFreq)
+      .sort((a, b) => b[1] - a[1])
+      .map(entry => entry[0]);
+
+    if (missingEl) {
+      missingEl.innerHTML = '';
+      if (sortedMissing.length > 0) {
+        sortedMissing.slice(0, 5).forEach(skill => {
+          const badge = document.createElement('span');
+          badge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-full bg-error-soft text-error-deep border border-error-deep/5';
+          badge.textContent = skill;
+          missingEl.appendChild(badge);
+        });
+      } else {
+        missingEl.innerHTML = '<span class="text-xs text-mute-text italic">No data yet. Added skills match your jobs perfectly!</span>';
+      }
+    }
+
+    // 2. Best Responding Companies
+    const respondingCompanies = Array.from(new Set(
+      userApplications
+        .filter(app => ['interview', 'offer'].includes(app.status))
+        .map(app => app.company_name)
+    ));
+
+    if (companiesEl) {
+      companiesEl.innerHTML = '';
+      if (respondingCompanies.length > 0) {
+        respondingCompanies.slice(0, 4).forEach(comp => {
+          const item = document.createElement('li');
+          item.className = 'font-medium';
+          item.textContent = String(comp);
+          companiesEl.appendChild(item);
+        });
+      } else {
+        companiesEl.innerHTML = '<li class="text-mute-text italic list-none">No active responses yet.</li>';
+      }
+    }
+
+    // 3. Recommended Action logic
+    if (recommendationEl) {
+      if (!userProfile?.skills || userProfile.skills.length === 0) {
+        recommendationEl.innerHTML = `<strong>Action Required:</strong> Add core skills to your Profile card to trigger automated Gemini AI match scoring.`;
+      } else if (userApplications.length === 0) {
+        recommendationEl.textContent = `Get started by clicking the floating add button to record your first job application.`;
+      } else {
+        // Find application that needs follow-up
+        const followUpTarget = userApplications.find(app => app.status === 'applied');
+        if (followUpTarget) {
+          recommendationEl.innerHTML = `<strong>Follow up:</strong> Send an update request for your <strong>${followUpTarget.job_title}</strong> application at <strong>${followUpTarget.company_name}</strong>.`;
+        } else {
+          recommendationEl.textContent = `Awesome work! Continue exploring job roles and matching your skills with Gemini AI.`;
+        }
+      }
+    }
+  }
+
+  // =========================================================================
+  // ACTIONS & MODALS CONTROLLER
+  // =========================================================================
+
+  // Inline validation helpers
+  function setValidationError(inputEl: HTMLInputElement | HTMLTextAreaElement, message: string) {
+    clearValidationError(inputEl);
+    inputEl.classList.add('border-error-deep', 'focus:border-error-deep', 'focus:ring-error-deep');
+    const errEl = document.createElement('p');
+    errEl.className = 'mt-1 text-xs text-error-deep font-medium inline-validation-error';
+    errEl.textContent = message;
+    inputEl.parentElement?.appendChild(errEl);
+  }
+
+  function clearValidationError(inputEl: HTMLInputElement | HTMLTextAreaElement) {
+    inputEl.classList.remove('border-error-deep', 'focus:border-error-deep', 'focus:ring-error-deep');
+    const parent = inputEl.parentElement;
+    if (parent) {
+      const existing = parent.querySelector('.inline-validation-error');
+      if (existing) existing.remove();
+    }
+  }
+
+  function setupEvents() {
+    // Edit Skills Profile
+    editSkillsBtn?.addEventListener('click', () => {
+      const targetRoleInput = document.querySelector('#targetRole') as HTMLInputElement;
+      const minSalaryInput = document.querySelector('#targetSalaryMin') as HTMLInputElement;
+      const maxSalaryInput = document.querySelector('#targetSalaryMax') as HTMLInputElement;
+      const skillsListInput = document.querySelector('#skillsList') as HTMLTextAreaElement;
+
+      if (targetRoleInput) {
+        targetRoleInput.value = userProfile?.target_role || '';
+        clearValidationError(targetRoleInput);
+      }
+      if (minSalaryInput) {
+        minSalaryInput.value = userProfile?.target_salary_min || '';
+        clearValidationError(minSalaryInput);
+      }
+      if (maxSalaryInput) {
+        maxSalaryInput.value = userProfile?.target_salary_max || '';
+        clearValidationError(maxSalaryInput);
+      }
+      if (skillsListInput) {
+        skillsListInput.value = userProfile?.skills ? userProfile.skills.join(', ') : '';
+        clearValidationError(skillsListInput);
+      }
+
+      skillsModal?.classList.remove('hidden');
+    });
+
+    // Close Modals
+    const closeAllModals = () => {
+      skillsModal?.classList.add('hidden');
+    };
+
+    closeSkillsBtn?.addEventListener('click', closeAllModals);
+    skillsOverlay?.addEventListener('click', closeAllModals);
+
+    // Save Skills profile
+    saveSkillsBtn?.addEventListener('click', handleSaveSkills);
+
+    // Sign out btn
+    signoutBtn?.addEventListener('click', async () => {
+      const { error } = await supabase.auth.signOut();
+      if (!error) {
+        window.location.href = '/login';
+      }
+    });
+  }
+
+  // Handle Save Skills Profile
+  async function handleSaveSkills() {
+    const targetRoleInput = document.querySelector('#targetRole') as HTMLInputElement;
+    const minSalaryInput = document.querySelector('#targetSalaryMin') as HTMLInputElement;
+    const maxSalaryInput = document.querySelector('#targetSalaryMax') as HTMLInputElement;
+    const skillsListInput = document.querySelector('#skillsList') as HTMLTextAreaElement;
+
+    const targetRole = targetRoleInput.value.trim();
+    const minSalary = minSalaryInput.value;
+    const maxSalary = maxSalaryInput.value;
+    const rawSkills = skillsListInput.value;
+
+    // Validate inputs
+    let hasError = false;
+    clearValidationError(minSalaryInput);
+    clearValidationError(maxSalaryInput);
+
+    if (minSalary && Number(minSalary) < 0) {
+      setValidationError(minSalaryInput, 'Salary cannot be negative.');
+      hasError = true;
+    }
+    if (maxSalary && Number(maxSalary) < 0) {
+      setValidationError(maxSalaryInput, 'Salary cannot be negative.');
+      hasError = true;
+    }
+    if (minSalary && maxSalary && Number(maxSalary) < Number(minSalary)) {
+      setValidationError(maxSalaryInput, 'Maximum salary cannot be less than minimum.');
+      hasError = true;
+    }
+
+    if (hasError) return;
+
+    const skills = rawSkills
+      ? rawSkills.split(',').map(s => s.trim()).filter(s => s.length > 0)
+      : [];
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: currentUser.id,
+          target_role: targetRole || null,
+          target_salary_min: minSalary ? Number(minSalary) : null,
+          target_salary_max: maxSalary ? Number(maxSalary) : null,
+          skills
+        });
+
+      if (error) throw error;
+      
+      if ((window as any).showToast) (window as any).showToast('Skills profile updated successfully.', 'success');
+
+      skillsModal?.classList.add('hidden');
+      await loadUserProfile();
+      
+      // Reload applications to update match scores if skills changed
+      await loadApplications();
+    } catch (err: any) {
+      console.error('Error saving skills profile:', err);
+      if ((window as any).showToast) (window as any).showToast(err.message || 'Error saving profile.', 'error');
+    }
+  }
+</script>
