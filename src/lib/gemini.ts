@@ -46,7 +46,7 @@ export interface GenerateInterviewPrepResult {
 // =========================================================================
 
 async function callGroq(prompt: string, systemMessage?: string, model: string = 'llama-3.1-8b-instant'): Promise<string> {
-  const apiKey = (import.meta as any).env?.GROQ_API_KEY;
+  const apiKey = (import.meta as any).env?.GROQ_API_KEY || (typeof process !== 'undefined' ? process.env?.GROQ_API_KEY : undefined);
   if (!apiKey) {
     throw new Error('GROQ_API_KEY is not defined in the environment.');
   }
