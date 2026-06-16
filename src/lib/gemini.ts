@@ -1,16 +1,30 @@
 import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const pdfModule = require('pdf-parse');
+
+let pdfModule: any = null;
+const getPdfParser = () => {
+  if (pdfModule) return pdfModule;
+  try {
+    const require = createRequire(import.meta.url);
+    pdfModule = require('pdf-parse');
+  } catch (e) {
+    console.error('Failed to load pdf-parse module lazily:', e);
+  }
+  return pdfModule;
+};
 
 const pdf = async (buffer: Buffer): Promise<{ text: string }> => {
-  if (typeof pdfModule === 'function') {
-    return pdfModule(buffer);
+  const pModule = getPdfParser();
+  if (!pModule) {
+    throw new Error('pdf-parse module could not be loaded.');
   }
-  if (pdfModule && typeof pdfModule.default === 'function') {
-    return pdfModule.default(buffer);
+  if (typeof pModule === 'function') {
+    return pModule(buffer);
   }
-  if (pdfModule && typeof pdfModule.PDFParse === 'function') {
-    const parser = new pdfModule.PDFParse({ data: buffer });
+  if (pModule && typeof pModule.default === 'function') {
+    return pModule.default(buffer);
+  }
+  if (pModule && typeof pModule.PDFParse === 'function') {
+    const parser = new pModule.PDFParse({ data: buffer });
     const result = await parser.getText();
     return { text: result.text || '' };
   }

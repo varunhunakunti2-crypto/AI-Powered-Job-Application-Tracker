@@ -761,14 +761,26 @@ import { JOB_ROLES } from '../../lib/roles';
         return;
       }
 
-      const res = await fetch('/api/extract-skills', {
+       const res = await fetch('/api/extract-skills', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resumeBase64: base64 })
       });
 
+      if (!res.ok) {
+        const text = await res.text();
+        let errorMsg = 'AI analysis failed, please try again';
+        try {
+          const parsed = JSON.parse(text);
+          errorMsg = parsed.error || errorMsg;
+        } catch (e) {
+          errorMsg = `Server error (${res.status}): ${text.substring(0, 150)}`;
+        }
+        throw new Error(errorMsg);
+      }
+
       const result = await res.json();
-      if (!res.ok || !result || result.error) throw new Error(result?.error || 'AI analysis failed, please try again');
+      if (!result || result.error) throw new Error(result?.error || 'AI analysis failed, please try again');
 
       suggestedSkills = result.skills || [];
       renderSuggestedSkills();
