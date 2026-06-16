@@ -1,7 +1,21 @@
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pdfModule = require('pdf-parse');
-const pdf = typeof pdfModule === 'function' ? pdfModule : (pdfModule.default || pdfModule);
+
+const pdf = async (buffer: Buffer): Promise<{ text: string }> => {
+  if (typeof pdfModule === 'function') {
+    return pdfModule(buffer);
+  }
+  if (pdfModule && typeof pdfModule.default === 'function') {
+    return pdfModule.default(buffer);
+  }
+  if (pdfModule && typeof pdfModule.PDFParse === 'function') {
+    const parser = new pdfModule.PDFParse({ data: buffer });
+    const result = await parser.getText();
+    return { text: result.text || '' };
+  }
+  throw new Error('No suitable PDF parsing function or class found in pdf-parse module.');
+};
 
 // =========================================================================
 // INTERFACES & TYPES
