@@ -113,12 +113,64 @@ export default function AnalyticsDashboard() {
 
   if (loading || !recharts) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center py-32 space-y-4">
-        <svg className="animate-spin h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <p className="text-xs font-semibold text-body-text animate-pulse">Compiling database metrics and charts...</p>
+      <div className="space-y-8 animate-pulse">
+        {/* Page Header Skeleton */}
+        <div>
+          <div className="h-6 w-48 bg-canvas-soft-2 rounded-sm"></div>
+          <div className="h-4 w-64 bg-canvas-soft rounded-sm mt-2"></div>
+        </div>
+
+        {/* Stats Row Skeleton */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-canvas border border-hairline p-5 rounded-md shadow-sm space-y-3">
+              <div className="h-3 w-24 bg-canvas-soft rounded-sm"></div>
+              <div className="h-8 w-16 bg-canvas-soft-2 rounded-sm"></div>
+            </div>
+          ))}
+        </div>
+
+        {/* Charts Grid Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Applications Over Time Skeleton */}
+          <div className="bg-canvas border border-hairline p-6 rounded-md shadow-sm lg:col-span-2 space-y-4">
+            <div className="flex justify-between items-center">
+              <div className="h-4 w-36 bg-canvas-soft-2 rounded-sm"></div>
+              <div className="h-3 w-16 bg-canvas-soft rounded-sm"></div>
+            </div>
+            <div className="h-72 w-full bg-canvas-soft rounded-sm flex items-end p-4 space-x-2">
+              {[...Array(15)].map((_, idx) => (
+                <div key={idx} className="flex-1 bg-canvas-soft-2 opacity-50 rounded-t-sm" style={{ height: `${(idx % 3) * 20 + 20}%` }}></div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4 Chart Cards Skeletons */}
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="h-4 w-28 bg-canvas-soft-2 rounded-sm"></div>
+                <div className="h-3 w-16 bg-canvas-soft rounded-sm"></div>
+              </div>
+              <div className="h-72 w-full bg-canvas-soft rounded-sm flex items-center justify-center">
+                {i === 1 ? (
+                  /* Donut chart skeleton */
+                  <div className="h-40 w-40 rounded-full border-[16px] border-canvas-soft-2 opacity-50 flex items-center justify-center"></div>
+                ) : (
+                  /* Bar chart skeleton */
+                  <div className="w-full h-full flex flex-col justify-between p-4 space-y-3">
+                    {[1, 2, 3, 4].map(j => (
+                      <div key={j} className="flex items-center space-x-3 w-full">
+                        <div className="h-3 w-12 bg-canvas-soft-2 opacity-50 rounded-sm"></div>
+                        <div className="h-3 flex-1 bg-canvas-soft-2 opacity-50 rounded-sm" style={{ width: `${(j * 15) + 20}%` }}></div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

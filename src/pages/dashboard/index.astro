@@ -1,12 +1,13 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { JOB_ROLES } from '../../lib/roles';
 ---
 
 <Layout title="Dashboard — AI Job Tracker">
   <div class="min-h-screen bg-canvas-soft text-ink font-geist flex flex-col">
     <!-- Navbar -->
-    <header class="sticky top-0 z-40 bg-canvas border-b border-hairline backdrop-blur-md">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <header class="sticky top-0 z-40 bg-canvas border-b border-hairline">
+      <div class="max-w-full mx-auto px-4 sm:px-8 lg:px-12 h-16 flex items-center justify-between">
         <div class="flex items-center gap-6">
           <a href="/dashboard" class="text-xl font-bold tracking-tight text-ink flex items-center gap-2">
             <span class="text-on-primary bg-primary px-2 py-0.5 rounded-sm font-mono text-sm">AI</span>
@@ -46,17 +47,106 @@ import Layout from '../../layouts/Layout.astro';
       </div>
     </header>
 
-    <!-- Global Page Loading Indicator -->
-    <div id="page-loader" class="flex-1 flex flex-col items-center justify-center py-32 space-y-4">
-      <svg class="animate-spin h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
-      <p class="text-xs font-semibold text-body-text animate-pulse">Loading job tracker pipeline...</p>
+    <!-- Global Page Loading Indicator (Skeleton screen) -->
+    <div id="page-loader" class="flex-1 max-w-full mx-auto w-full px-4 sm:px-8 lg:px-12 py-8 animate-pulse">
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        
+        <!-- Left 3 columns: Stats & Kanban -->
+        <div class="lg:col-span-3 space-y-8">
+          
+          <!-- Stats Row -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} class="bg-canvas border border-hairline p-4 rounded-md shadow-sm space-y-3">
+                <div class="h-3 w-24 bg-canvas-soft rounded-sm"></div>
+                <div class="h-8 w-16 bg-canvas-soft-2 rounded-sm"></div>
+              </div>
+            ))}
+          </div>
+
+          <!-- Kanban Board Header -->
+          <div class="flex items-center justify-between">
+            <div class="h-6 w-24 bg-canvas-soft-2 rounded-sm"></div>
+            <div class="h-4 w-64 bg-canvas-soft rounded-sm"></div>
+          </div>
+
+          <!-- Kanban Board -->
+          <div class="grid grid-cols-1 md:grid-cols-[repeat(5,minmax(200px,1fr))] gap-4 overflow-x-auto pb-4 items-start">
+            {[1, 2, 3, 4, 5].map(colIdx => {
+              const titles = ["Saved", "Applied", "Interview", "Offer", "Rejected"];
+              return (
+                <div key={colIdx} class="flex flex-col min-w-[200px] bg-canvas border border-hairline p-3 rounded-md shadow-sm space-y-4">
+                  <div class="flex items-center justify-between mb-3 border-b border-hairline pb-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-body-text">{titles[colIdx - 1]}</span>
+                    <span class="text-xs font-mono px-2 py-0.5 rounded-full bg-canvas-soft-2 text-body-text w-5 h-5"></span>
+                  </div>
+                  
+                  {/* Staggered cards in columns */}
+                  {[...Array(colIdx === 2 ? 2 : colIdx === 3 ? 1 : 0)].map((_, cardIdx) => (
+                    <div key={cardIdx} class="bg-canvas border border-hairline p-3.5 rounded-md shadow-xs space-y-3">
+                      <div class="flex justify-between items-start gap-2">
+                        <div class="h-4 w-20 bg-canvas-soft-2 rounded-sm"></div>
+                        <div class="h-3.5 w-12 bg-canvas-soft-2 opacity-50 rounded-full"></div>
+                      </div>
+                      <div class="h-4 w-32 bg-canvas-soft-2 rounded-sm"></div>
+                      <div class="flex items-center justify-between mt-3">
+                        <div class="h-3 w-10 bg-canvas-soft rounded-sm"></div>
+                        <div class="h-3 w-16 bg-canvas-soft rounded-sm"></div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  <div class="border border-dashed border-hairline py-8 text-center text-xs text-mute-text rounded-sm select-none opacity-50">
+                    Empty
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+        </div>
+
+        <!-- Right sidebar column -->
+        <div class="lg:col-span-1 space-y-6">
+          {/* Profile Card */}
+          <div class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-4">
+            <div class="h-4 w-32 bg-canvas-soft-2 rounded-sm pb-2 border-b border-hairline"></div>
+            <div class="space-y-2">
+              <div class="h-3 w-20 bg-canvas-soft rounded-sm"></div>
+              <div class="h-4 w-28 bg-canvas-soft-2 rounded-sm"></div>
+            </div>
+            <div class="space-y-2">
+              <div class="h-3 w-20 bg-canvas-soft rounded-sm"></div>
+              <div class="h-4 w-36 bg-canvas-soft-2 rounded-sm"></div>
+            </div>
+            <div class="space-y-2">
+              <div class="h-3 w-16 bg-canvas-soft rounded-sm"></div>
+              <div class="flex flex-wrap gap-1.5">
+                {[1, 2, 3].map(i => (
+                  <div key={i} class="h-4 w-12 bg-canvas-soft-2 rounded-full"></div>
+                ))}
+              </div>
+            </div>
+          </div>
+          {/* AI Insights Card */}
+          <div class="bg-canvas border border-hairline p-6 rounded-md shadow-sm space-y-4">
+            <div class="h-4 w-24 bg-canvas-soft-2 rounded-sm border-b border-hairline pb-2"></div>
+            <div class="space-y-2">
+              <div class="h-3 w-36 bg-canvas-soft rounded-sm"></div>
+              <div class="flex gap-1">
+                {[1, 2].map(i => (
+                  <div key={i} class="h-4 w-12 bg-canvas-soft-2 rounded-full"></div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
     </div>
 
     <!-- Main Workspace Content (Hidden initially during fetch) -->
-    <main id="dashboard-content" class="hidden flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+    <main id="dashboard-content" class="hidden flex-1 max-w-full mx-auto w-full px-4 sm:px-8 lg:px-12 py-8">
       <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
         
         <!-- Left 3 columns: Stats & Kanban -->
@@ -102,7 +192,7 @@ import Layout from '../../layouts/Layout.astro';
           </div>
 
           <!-- Kanban Board -->
-          <div id="kanban-board" class="grid grid-cols-1 md:grid-cols-5 gap-4 overflow-x-auto pb-4 items-start select-none">
+          <div id="kanban-board" class="grid grid-cols-1 md:grid-cols-[repeat(5,minmax(200px,1fr))] gap-4 overflow-x-auto pb-4 items-start select-none">
             <!-- Column 1: Saved -->
             <div class="flex flex-col min-w-[200px] bg-canvas border border-hairline p-3 rounded-md shadow-sm" data-status="saved">
               <div class="flex items-center justify-between mb-3 border-b border-hairline pb-2">
@@ -173,6 +263,11 @@ import Layout from '../../layouts/Layout.astro';
                 <span class="text-[11px] text-mute-text italic">No skills added yet.</span>
               </div>
             </div>
+            <!-- UUID Helper -->
+            <div class="pt-3 border-t border-hairline mt-2">
+              <p class="text-[10px] text-mute-text uppercase font-mono tracking-wider">My User ID (UUID)</p>
+              <code class="text-[10px] text-body-text select-all block mt-0.5 break-all bg-canvas-soft-2 p-1.5 rounded-sm font-mono border border-hairline" id="user-id-display">Loading...</code>
+            </div>
           </div>
 
           <!-- AI Insights Card -->
@@ -227,7 +322,7 @@ import Layout from '../../layouts/Layout.astro';
     <div id="skills-modal" class="fixed inset-0 z-50 overflow-y-auto hidden">
       <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         <!-- Overlay -->
-        <div class="fixed inset-0 transition-opacity bg-primary/20 backdrop-blur-xs" id="skills-overlay"></div>
+        <div class="fixed inset-0 transition-opacity bg-primary/20" id="skills-overlay"></div>
         <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
         <!-- Modal Card -->
         <div class="inline-block align-bottom bg-canvas border border-hairline rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
@@ -238,7 +333,21 @@ import Layout from '../../layouts/Layout.astro';
             <form id="skills-form" class="mt-4 space-y-4" novalidate>
               <div>
                 <label for="targetRole" class="block text-xs font-semibold text-body-text">Target Job Role</label>
-                <input type="text" id="targetRole" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none focus:border-hairline-strong transition-all" placeholder="e.g. Senior React Developer" />
+                <select id="targetRole" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-xs focus:outline-none focus:border-hairline-strong transition-all cursor-pointer">
+                  <option value="">Select a target role...</option>
+                  {JOB_ROLES.map(group => (
+                    <optgroup label={group.category}>
+                      {group.roles.map(role => (
+                        <option value={role}>{role}</option>
+                      ))}
+                    </optgroup>
+                  ))}
+                  <option value="Other">Other / Custom</option>
+                </select>
+                <div id="custom-role-container" class="hidden mt-2 animate-fade-in">
+                  <label for="customRole" class="block text-xs font-semibold text-body-text mt-1">Custom Target Role</label>
+                  <input type="text" id="customRole" placeholder="Enter your custom target role" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none focus:border-hairline-strong transition-all" />
+                </div>
               </div>
               <div class="grid grid-cols-2 gap-4">
                 <div>
@@ -273,6 +382,7 @@ import Layout from '../../layouts/Layout.astro';
 
 <script>
   import { supabase } from '../../lib/supabase';
+  import { JOB_ROLES } from '../../lib/roles';
 
   // State
   let currentUser: any = null;
@@ -303,7 +413,7 @@ import Layout from '../../layouts/Layout.astro';
   const skillsOverlay = document.querySelector('#skills-overlay') as HTMLElement;
 
   // Initialize page
-  document.addEventListener('DOMContentLoaded', async () => {
+  const init = async () => {
     // Corner Theme Toggler Link setup
     document.querySelector('#theme-toggle-btn')?.addEventListener('click', () => {
       (window as any).toggleTheme();
@@ -329,7 +439,13 @@ import Layout from '../../layouts/Layout.astro';
     // 4. Reveal content workspace
     pageLoader?.classList.add('hidden');
     dashboardContent?.classList.remove('hidden');
-  });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 
   // Load Profile from DB
   async function loadUserProfile() {
@@ -359,9 +475,135 @@ import Layout from '../../layouts/Layout.astro';
         userProfile = insertedData;
       }
 
+      // Automatically seed demo data if profile skills are empty
+      if (!userProfile.skills || userProfile.skills.length === 0) {
+        console.log('Seeding demo data for empty profile...');
+        
+        // 1. Update profile skills/role/salary
+        const { data: updatedProfile, error: profileUpdateError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: currentUser.id,
+            target_role: 'Software Engineer',
+            target_salary_min: 100000,
+            target_salary_max: 150000,
+            skills: ['Python', 'JavaScript', 'TypeScript', 'Node.js', 'SQL', 'Git', 'HTML', 'CSS']
+          })
+          .select()
+          .single();
+
+        if (profileUpdateError) throw profileUpdateError;
+        userProfile = updatedProfile;
+
+        // 2. Insert demo applications
+        const { data: existingApps } = await supabase
+          .from('applications')
+          .select('id')
+          .eq('user_id', currentUser.id);
+
+        if (!existingApps || existingApps.length === 0) {
+          const demoApps = [
+            {
+              user_id: currentUser.id, 
+              company_name: 'Stripe', 
+              job_title: 'Staff UI Engineer', 
+              status: 'saved', 
+              work_type: 'Remote', 
+              location: 'San Francisco, CA', 
+              salary_min: 160000, 
+              salary_max: 210000, 
+              applied_date: new Date().toISOString().split('T')[0],
+              notes: 'High bar for UI styling systems. Tech stack is React and custom design systems.',
+              ai_match_score: 92,
+              ai_summary: 'Excellent match for React, TypeScript, and styling. Lacks Ruby/Go experience.',
+              ai_matching_skills: ['React', 'TypeScript', 'Tailwind CSS', 'JavaScript'],
+              ai_missing_skills: ['GraphQL', 'Ruby on Rails']
+            },
+            {
+              user_id: currentUser.id, 
+              company_name: 'Netflix', 
+              job_title: 'Senior UI Engineer', 
+              status: 'applied', 
+              work_type: 'Hybrid', 
+              location: 'Los Gatos, CA', 
+              salary_min: 180000, 
+              salary_max: 230000, 
+              applied_date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              notes: 'Applied on company portal. Looking forward to modernizing their UI core.',
+              ai_match_score: 88,
+              ai_summary: 'Strong frontend alignment. Missing WebGL and Canvas API skills.',
+              ai_matching_skills: ['React', 'TypeScript', 'Next.js', 'Node.js'],
+              ai_missing_skills: ['WebGL', 'Web3']
+            },
+            {
+              user_id: currentUser.id, 
+              company_name: 'Vercel', 
+              job_title: 'Frontend Developer (React)', 
+              status: 'interview', 
+              work_type: 'Remote', 
+              location: 'New York, NY', 
+              salary_min: 110000, 
+              salary_max: 140000, 
+              applied_date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              notes: 'HM screening went great. Technical challenge scheduled for tomorrow.',
+              ai_match_score: 95,
+              ai_summary: 'Excellent alignment with Vercel tech stack. Zero major skill gaps detected.',
+              ai_matching_skills: ['React', 'TypeScript', 'Tailwind CSS', 'Astro', 'Next.js'],
+              ai_missing_skills: []
+            },
+            {
+              user_id: currentUser.id, 
+              company_name: 'Supabase', 
+              job_title: 'Frontend Developer', 
+              status: 'offer', 
+              work_type: 'Remote', 
+              location: 'Singapore', 
+              salary_min: 125000, 
+              salary_max: 155000, 
+              applied_date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              notes: 'Offer details: Base salary $135k + equity options. Reviewing benefits package.',
+              ai_match_score: 84,
+              ai_summary: 'Solid profile alignment, though Postgres and database administration knowledge is minor.',
+              ai_matching_skills: ['React', 'TypeScript', 'Tailwind CSS', 'Node.js'],
+              ai_missing_skills: ['PostgreSQL', 'SQL']
+            },
+            {
+              user_id: currentUser.id, 
+              company_name: 'LegacyCorp', 
+              job_title: 'Backend System Architect', 
+              status: 'rejected', 
+              work_type: 'Onsite', 
+              location: 'Seattle, WA', 
+              salary_min: 150000, 
+              salary_max: 170000, 
+              applied_date: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              notes: 'Applied via cold outreach. Rejected at resume scan phase due to frontend-dominant background.',
+              ai_match_score: 42,
+              ai_summary: 'Weak alignment. Major backend skill gaps detected.',
+              ai_matching_skills: ['Node.js'],
+              ai_missing_skills: ['Python', 'Django', 'Kubernetes', 'AWS']
+            }
+          ];
+
+          const { error: appsInsertError } = await supabase
+            .from('applications')
+            .insert(demoApps);
+          
+          if (appsInsertError) throw appsInsertError;
+          
+          // Force reload applications to render new cards
+          await loadApplications();
+        }
+      }
+
       // Display Metadata
       if (profileName) profileName.textContent = userProfile.full_name || 'Guest User';
       if (profileEmail) profileEmail.textContent = userProfile.email || currentUser.email;
+      
+      const userIdDisplay = document.querySelector('#user-id-display') as HTMLElement;
+      if (userIdDisplay && currentUser) {
+        userIdDisplay.textContent = currentUser.id;
+      }
 
       // Update sidebar
       const targetRole = document.querySelector('#target-role-display') as HTMLElement;
@@ -671,15 +913,47 @@ import Layout from '../../layouts/Layout.astro';
   }
 
   function setupEvents() {
+    const targetRoleInput = document.querySelector('#targetRole') as HTMLSelectElement;
+    const customRoleContainer = document.querySelector('#custom-role-container') as HTMLElement;
+    const customRoleInput = document.querySelector('#customRole') as HTMLInputElement;
+
+    // Listen to changes on target role selection
+    targetRoleInput?.addEventListener('change', () => {
+      if (targetRoleInput.value === 'Other') {
+        customRoleContainer?.classList.remove('hidden');
+        if (customRoleInput) {
+          customRoleInput.value = '';
+          customRoleInput.focus();
+        }
+      } else {
+        customRoleContainer?.classList.add('hidden');
+        if (customRoleInput) customRoleInput.value = '';
+      }
+      clearValidationError(targetRoleInput);
+    });
+    customRoleInput?.addEventListener('input', () => clearValidationError(customRoleInput));
+
     // Edit Skills Profile
     editSkillsBtn?.addEventListener('click', () => {
-      const targetRoleInput = document.querySelector('#targetRole') as HTMLInputElement;
       const minSalaryInput = document.querySelector('#targetSalaryMin') as HTMLInputElement;
       const maxSalaryInput = document.querySelector('#targetSalaryMax') as HTMLInputElement;
       const skillsListInput = document.querySelector('#skillsList') as HTMLTextAreaElement;
 
       if (targetRoleInput) {
-        targetRoleInput.value = userProfile?.target_role || '';
+        const standardRoles = JOB_ROLES.flatMap(g => g.roles);
+        const savedRole = userProfile?.target_role || '';
+        
+        if (savedRole === '') {
+          targetRoleInput.value = '';
+          customRoleContainer?.classList.add('hidden');
+        } else if (standardRoles.includes(savedRole)) {
+          targetRoleInput.value = savedRole;
+          customRoleContainer?.classList.add('hidden');
+        } else {
+          targetRoleInput.value = 'Other';
+          if (customRoleInput) customRoleInput.value = savedRole;
+          customRoleContainer?.classList.remove('hidden');
+        }
         clearValidationError(targetRoleInput);
       }
       if (minSalaryInput) {
@@ -720,12 +994,16 @@ import Layout from '../../layouts/Layout.astro';
 
   // Handle Save Skills Profile
   async function handleSaveSkills() {
-    const targetRoleInput = document.querySelector('#targetRole') as HTMLInputElement;
+    const targetRoleInput = document.querySelector('#targetRole') as HTMLSelectElement;
+    const customRoleInput = document.querySelector('#customRole') as HTMLInputElement;
     const minSalaryInput = document.querySelector('#targetSalaryMin') as HTMLInputElement;
     const maxSalaryInput = document.querySelector('#targetSalaryMax') as HTMLInputElement;
     const skillsListInput = document.querySelector('#skillsList') as HTMLTextAreaElement;
 
-    const targetRole = targetRoleInput.value.trim();
+    let targetRole = targetRoleInput.value;
+    if (targetRole === 'Other' && customRoleInput) {
+      targetRole = customRoleInput.value.trim();
+    }
     const minSalary = minSalaryInput.value;
     const maxSalary = maxSalaryInput.value;
     const rawSkills = skillsListInput.value;

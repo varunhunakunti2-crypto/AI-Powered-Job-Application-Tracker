@@ -133,7 +133,7 @@ import Layout from '../layouts/Layout.astro';
   const successAlert = document.querySelector('#success-alert') as HTMLElement;
 
   // Initialize
-  document.addEventListener('DOMContentLoaded', async () => {
+  const init = async () => {
     // Corner Theme Toggler Link setup
     document.querySelector('#theme-toggle-btn')?.addEventListener('click', () => {
       (window as any).toggleTheme();
@@ -154,7 +154,13 @@ import Layout from '../layouts/Layout.astro';
     } catch (err) {
       console.error('Error fetching session:', err);
     }
-  });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 
   // Inline Validation Helpers
   function setValidationError(inputEl: HTMLInputElement, message: string) {

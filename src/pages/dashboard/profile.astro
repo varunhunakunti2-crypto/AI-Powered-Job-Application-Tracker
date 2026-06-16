@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { JOB_ROLES } from '../../lib/roles';
 ---
 
 <Layout title="My Profile — AI Job Tracker">
@@ -78,7 +79,7 @@ import Layout from '../../layouts/Layout.astro';
                   <img
                     id="avatar-preview"
                     class="h-20 w-20 rounded-full border border-hairline object-cover bg-white hidden"
-                    src=""
+                    src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
                     alt="User Avatar"
                   />
                   <div
@@ -120,7 +121,21 @@ import Layout from '../../layouts/Layout.astro';
                 <div class="grid grid-cols-2 gap-4">
                   <div>
                     <label for="targetRole" class="block text-xs font-semibold text-body-text">Target Job Role</label>
-                    <input type="text" id="targetRole" placeholder="e.g. Senior React Developer" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none focus:border-hairline-strong transition-all" />
+                    <select id="targetRole" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-xs focus:outline-none focus:border-hairline-strong transition-all cursor-pointer">
+                      <option value="">Select a target role...</option>
+                      {JOB_ROLES.map(group => (
+                        <optgroup label={group.category}>
+                          {group.roles.map(role => (
+                            <option value={role}>{role}</option>
+                          ))}
+                        </optgroup>
+                      ))}
+                      <option value="Other">Other / Custom</option>
+                    </select>
+                    <div id="custom-role-container" class="hidden mt-2 animate-fade-in">
+                      <label for="customRole" class="block text-xs font-semibold text-body-text mt-1">Custom Target Role</label>
+                      <input type="text" id="customRole" placeholder="Enter your custom target role" class="mt-1 block w-full h-9 px-2.5 bg-canvas border border-hairline rounded-sm text-sm focus:outline-none focus:border-hairline-strong transition-all" />
+                    </div>
                   </div>
                   <div>
                     <label for="locationPreference" class="block text-xs font-semibold text-body-text">Location Preference</label>
@@ -211,6 +226,13 @@ import Layout from '../../layouts/Layout.astro';
                 >
                   View Resume
                 </a>
+                <button
+                  type="button"
+                  id="remove-resume-btn"
+                  class="h-8 px-4 border border-hairline hover:bg-red-50 hover:text-red-700 hover:border-red-200 rounded-sm text-xs font-medium transition-all cursor-pointer flex items-center justify-center hidden"
+                >
+                  Remove Resume
+                </button>
               </div>
             </div>
 
@@ -279,6 +301,7 @@ import Layout from '../../layouts/Layout.astro';
 
 <script>
   import { supabase } from '../../lib/supabase';
+  import { JOB_ROLES } from '../../lib/roles';
 
   // State Variables
   let currentUser: any = null;
@@ -308,7 +331,9 @@ import Layout from '../../layouts/Layout.astro';
 
   const fullNameInput = document.querySelector('#fullName') as HTMLInputElement;
   const emailAddressInput = document.querySelector('#emailAddress') as HTMLInputElement;
-  const targetRoleInput = document.querySelector('#targetRole') as HTMLInputElement;
+  const targetRoleInput = document.querySelector('#targetRole') as HTMLSelectElement;
+  const customRoleContainer = document.querySelector('#custom-role-container') as HTMLElement;
+  const customRoleInput = document.querySelector('#customRole') as HTMLInputElement;
   const locationPreferenceInput = document.querySelector('#locationPreference') as HTMLInputElement;
   const targetSalaryMinInput = document.querySelector('#targetSalaryMin') as HTMLInputElement;
   const targetSalaryMaxInput = document.querySelector('#targetSalaryMax') as HTMLInputElement;
@@ -323,6 +348,7 @@ import Layout from '../../layouts/Layout.astro';
   const uploadResumeBtn = document.querySelector('#upload-resume-btn') as HTMLButtonElement;
   const resumeFilenameDisplay = document.querySelector('#resume-filename-display') as HTMLElement;
   const viewResumeBtn = document.querySelector('#view-resume-btn') as HTMLAnchorElement;
+  const removeResumeBtn = document.querySelector('#remove-resume-btn') as HTMLButtonElement;
 
   // AI Skills Extractions
   const aiExtractSection = document.querySelector('#ai-extract-section') as HTMLElement;
@@ -335,7 +361,7 @@ import Layout from '../../layouts/Layout.astro';
   const saveProfileBtn = document.querySelector('#save-profile-btn') as HTMLButtonElement;
 
   // Initialize profile page
-  document.addEventListener('DOMContentLoaded', async () => {
+  const init = async () => {
     // Corner Theme Toggler Link setup
     document.querySelector('#theme-toggle-btn')?.addEventListener('click', () => {
       (window as any).toggleTheme();
@@ -354,7 +380,13 @@ import Layout from '../../layouts/Layout.astro';
 
     // 3. Set up listeners
     setupEventListeners();
-  });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 
   // Inline Validation Helpers
   function setValidationError(inputEl: HTMLInputElement | HTMLTextAreaElement, message: string) {
@@ -409,7 +441,22 @@ import Layout from '../../layouts/Layout.astro';
 
       if (fullNameInput) fullNameInput.value = userProfile.full_name || '';
       if (emailAddressInput) emailAddressInput.value = userProfile.email || currentUser.email;
-      if (targetRoleInput) targetRoleInput.value = userProfile.target_role || '';
+      if (targetRoleInput) {
+        const standardRoles = JOB_ROLES.flatMap(g => g.roles);
+        const savedRole = userProfile.target_role || '';
+        
+        if (savedRole === '') {
+          targetRoleInput.value = '';
+          customRoleContainer?.classList.add('hidden');
+        } else if (standardRoles.includes(savedRole)) {
+          targetRoleInput.value = savedRole;
+          customRoleContainer?.classList.add('hidden');
+        } else {
+          targetRoleInput.value = 'Other';
+          if (customRoleInput) customRoleInput.value = savedRole;
+          customRoleContainer?.classList.remove('hidden');
+        }
+      }
       if (locationPreferenceInput) locationPreferenceInput.value = userProfile.location_preference || '';
       if (targetSalaryMinInput) targetSalaryMinInput.value = userProfile.target_salary_min || '';
       if (targetSalaryMaxInput) targetSalaryMaxInput.value = userProfile.target_salary_max || '';
@@ -453,6 +500,9 @@ import Layout from '../../layouts/Layout.astro';
           viewResumeBtn.href = userProfile.resume_url;
           viewResumeBtn.classList.remove('hidden');
         }
+        if (removeResumeBtn) {
+          removeResumeBtn.classList.remove('hidden');
+        }
         if (aiExtractSection) aiExtractSection.classList.remove('hidden');
       }
 
@@ -467,6 +517,20 @@ import Layout from '../../layouts/Layout.astro';
   // Setup UI components listeners
   function setupEventListeners() {
     fullNameInput?.addEventListener('input', () => clearValidationError(fullNameInput));
+    targetRoleInput?.addEventListener('change', () => {
+      if (targetRoleInput.value === 'Other') {
+        customRoleContainer?.classList.remove('hidden');
+        if (customRoleInput) {
+          customRoleInput.value = '';
+          customRoleInput.focus();
+        }
+      } else {
+        customRoleContainer?.classList.add('hidden');
+        if (customRoleInput) customRoleInput.value = '';
+      }
+      clearValidationError(targetRoleInput);
+    });
+    customRoleInput?.addEventListener('input', () => clearValidationError(customRoleInput));
     targetSalaryMinInput?.addEventListener('input', () => clearValidationError(targetSalaryMinInput));
     targetSalaryMaxInput?.addEventListener('input', () => clearValidationError(targetSalaryMaxInput));
 
@@ -481,6 +545,7 @@ import Layout from '../../layouts/Layout.astro';
       const file = e.target.files?.[0];
       if (file) await handleResumeUpload(file);
     });
+    removeResumeBtn?.addEventListener('click', handleRemoveResume);
 
     addSkillTagBtn?.addEventListener('click', addManualSkillTag);
     skillTagInput?.addEventListener('keydown', (e) => {
@@ -624,6 +689,9 @@ import Layout from '../../layouts/Layout.astro';
         viewResumeBtn.href = data.publicUrl;
         viewResumeBtn.classList.remove('hidden');
       }
+      if (removeResumeBtn) {
+        removeResumeBtn.classList.remove('hidden');
+      }
       
       if (aiExtractSection) aiExtractSection.classList.remove('hidden');
       if ((window as any).showToast) (window as any).showToast('Resume uploaded successfully.', 'success');
@@ -633,6 +701,35 @@ import Layout from '../../layouts/Layout.astro';
     } finally {
       hideOverlay();
     }
+  }
+
+  async function handleRemoveResume() {
+    resumeUrl = '';
+    resumeFileName = '';
+    currentResumeFile = null;
+    
+    if (resumeInput) resumeInput.value = '';
+    if (resumeFilenameDisplay) resumeFilenameDisplay.textContent = 'No PDF resume attached';
+    
+    if (viewResumeBtn) {
+      viewResumeBtn.href = '#';
+      viewResumeBtn.classList.add('hidden');
+    }
+    
+    if (removeResumeBtn) {
+      removeResumeBtn.classList.add('hidden');
+    }
+    
+    if (aiExtractSection) {
+      aiExtractSection.classList.add('hidden');
+    }
+    
+    if (aiSuggestionsBox) {
+      aiSuggestionsBox.classList.add('hidden');
+    }
+    suggestedSkills = [];
+    
+    if ((window as any).showToast) (window as any).showToast('Resume removed. Click Save Profile to apply changes.', 'success');
   }
 
   function fileToBase64(file: Blob): Promise<string> {
@@ -749,7 +846,10 @@ import Layout from '../../layouts/Layout.astro';
       hasError = true;
     }
 
-    const targetRole = targetRoleInput?.value.trim() || null;
+    let targetRole = targetRoleInput?.value || null;
+    if (targetRole === 'Other' && customRoleInput) {
+      targetRole = customRoleInput.value.trim() || null;
+    }
     const locationPreference = locationPreferenceInput?.value.trim() || null;
     const salaryMin = targetSalaryMinInput?.value ? Number(targetSalaryMinInput.value) : null;
     const salaryMax = targetSalaryMaxInput?.value ? Number(targetSalaryMaxInput.value) : null;

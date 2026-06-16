@@ -1,3 +1,7 @@
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pdf = require('pdf-parse');
+
 // =========================================================================
 // INTERFACES & TYPES
 // =========================================================================
@@ -40,7 +44,7 @@ export interface GenerateInterviewPrepResult {
 // HELPER FUNCTION FOR GROQ API
 // =========================================================================
 
-async function callGroq(prompt: string, systemMessage?: string): Promise<string> {
+async function callGroq(prompt: string, systemMessage?: string, model: string = 'llama-3.1-8b-instant'): Promise<string> {
   const apiKey = (import.meta as any).env?.GROQ_API_KEY;
   if (!apiKey) {
     throw new Error('GROQ_API_KEY is not defined in the environment.');
@@ -59,7 +63,7 @@ async function callGroq(prompt: string, systemMessage?: string): Promise<string>
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model,
       messages,
       response_format: { type: 'json_object' },
       temperature: 0.1,
@@ -258,14 +262,24 @@ export async function extractSkillsFromResume(
     // Basic heuristics to check if it looks like a base64 PDF
     let textToAnalyze = textOrBase64;
     if (textOrBase64.startsWith('JVBERi')) {
-      // PDF base64 detected. Since Groq does not parse binary PDFs, we will return a fallback or try to extract plain ascii text from base64 if possible.
-      // As a fallback, we tell the user or process as basic text if decode is possible.
+      // PDF base64 detected. Use pdf-parse to extract actual text content.
       try {
-        const decoded = Buffer.from(textOrBase64, 'base64').toString('utf-8');
-        // Filter out binary garbage to grab any readable strings
-        textToAnalyze = decoded.replace(/[^\x20-\x7E\n\r]/g, ' ');
+        const buffer = Buffer.from(textOrBase64, 'base64');
+        const data = await pdf(buffer);
+        textToAnalyze = data.text || '';
+        
+        // Truncate resume text if it's too long
+        if (textToAnalyze.length > 8000) {
+          textToAnalyze = textToAnalyze.substring(0, 8000) + '... [Resume Truncated]';
+        }
       } catch (e) {
-        textToAnalyze = "[Base64 PDF Content - could not parse directly with Groq text model]";
+        console.error('pdf-parse failed, falling back:', e);
+        try {
+          const decoded = Buffer.from(textOrBase64, 'base64').toString('utf-8');
+          textToAnalyze = decoded.replace(/[^\x20-\x7E\n\r]/g, ' ').substring(0, 3000);
+        } catch (err) {
+          textToAnalyze = "[Base64 PDF Content - could not parse]";
+        }
       }
     }
 
@@ -292,6 +306,72 @@ export async function extractSkillsFromResume(
       throw new Error('Groq API rate limit exceeded. Please wait 30-60 seconds and try again.');
     }
     throw new Error(error?.message || 'Failed to extract skills from resume. Please try again.');
+  }
+}
+
+export interface MockInterviewResult {
+  grade: string | null;
+  feedback: string | null;
+  nextQuestion: string;
+}
+
+/**
+ * Simulates a recruiter conducting a mock interview, generating feedback for the user's answer and the next question.
+ */
+export async function conductMockInterview(
+  role: string,
+  jobDescription: string,
+  chatHistory: { role: 'user' | 'assistant'; content: string }[],
+  userProfile?: Record<string, any>
+): Promise<MockInterviewResult | null> {
+  try {
+    // Truncate job description to prevent token limit errors
+    const truncatedJobDesc = jobDescription && jobDescription.length > 3000 
+      ? jobDescription.substring(0, 3000) + '...' 
+      : jobDescription || 'No description provided.';
+
+    // Strip out unnecessary profile properties (like base64, large objects, etc.)
+    const cleanProfile = userProfile ? {
+      full_name: userProfile.full_name,
+      skills: userProfile.skills,
+      target_role: userProfile.target_role,
+      target_salary_min: userProfile.target_salary_min,
+      target_salary_max: userProfile.target_salary_max
+    } : {};
+
+    const prompt = `
+      You are an expert technical interviewer and recruiter for the role of "${role}".
+      
+      Job Description:
+      "${truncatedJobDesc}"
+      
+      User Profile/Resume context:
+      ${JSON.stringify(cleanProfile)}
+      
+      Below is the interview chat history. The assistant messages represent the recruiter's questions/responses, and the user messages represent the candidate's answers:
+      ${JSON.stringify(chatHistory)}
+      
+      Your tasks:
+      1. If the candidate just answered a question (i.e. the last message in chat history is from the "user"), evaluate their answer. Provide a constructive letter grade (A, B, C, D, or F) and 2-3 sentences of feedback (what they did well, what they missed, how to improve). If the chat history does not end with a user answer (e.g. this is the start of the interview), set "grade" and "feedback" to null.
+      2. Generate the next logical, professional interview question based on the job description, candidate's profile, and the flow of the conversation.
+      
+      Provide your response strictly in the following JSON format:
+      {
+        "grade": "A" | "B" | "C" | "D" | "F" | null,
+        "feedback": "string containing constructive feedback, or null",
+        "nextQuestion": "string containing the next interview question"
+      }
+    `;
+
+    const systemMessage = "You are a professional assistant that must return responses strictly formatted as a JSON object.";
+    const resultText = await callGroq(prompt, systemMessage, 'llama-3.1-8b-instant');
+    return JSON.parse(resultText) as MockInterviewResult;
+  } catch (error: any) {
+    console.error('Error in conductMockInterview:', error);
+    if (error?.status === 429 || error?.message?.includes('429') || error?.message?.includes('quota') || error?.message?.includes('Limit')) {
+      throw new Error('Groq API rate limit or token limit exceeded. Please wait 30-60 seconds and try again.');
+    }
+    throw new Error(error?.message || 'Failed to generate interview response. Please try again.');
   }
 }
 

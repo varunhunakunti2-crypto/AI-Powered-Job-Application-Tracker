@@ -29,3 +29,4 @@ pnpm-debug.log*
 .kilocode/
 skills-lock.json
 skills/
+.vercel

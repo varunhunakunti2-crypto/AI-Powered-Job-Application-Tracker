@@ -329,7 +329,7 @@ import Layout from '../../layouts/Layout.astro';
   const saveApplicationBtn = document.querySelector('#save-application-btn') as HTMLButtonElement;
 
   // Initialize Page
-  document.addEventListener('DOMContentLoaded', async () => {
+  const init = async () => {
     // Corner Theme Toggler Link setup
     document.querySelector('#theme-toggle-btn')?.addEventListener('click', () => {
       (window as any).toggleTheme();
@@ -355,7 +355,13 @@ import Layout from '../../layouts/Layout.astro';
 
     // 4. Setup Events
     setupEventListeners();
-  });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 
   // Inline Validation Helpers
   function setValidationError(inputEl: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement, message: string) {

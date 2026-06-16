@@ -143,7 +143,7 @@ import Layout from '../layouts/Layout.astro';
   const errorMessage = document.querySelector('#error-message') as HTMLElement;
 
   // Initialize: Auto-redirect if session is active
-  document.addEventListener('DOMContentLoaded', async () => {
+  const init = async () => {
     document.querySelector('#theme-toggle-btn')?.addEventListener('click', () => {
       (window as any).toggleTheme();
     });
@@ -156,7 +156,13 @@ import Layout from '../layouts/Layout.astro';
     } catch (err) {
       console.error('Error fetching session:', err);
     }
-  });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 
   // Inline Validation Helpers
   function setValidationError(inputEl: HTMLInputElement, message: string) {

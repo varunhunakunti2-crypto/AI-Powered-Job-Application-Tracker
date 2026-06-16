@@ -67,7 +67,7 @@ import AnalyticsDashboard from '../../components/AnalyticsDashboard';
   const signoutBtn = document.querySelector('#signout-btn') as HTMLButtonElement;
 
   // Initialize page
-  document.addEventListener('DOMContentLoaded', async () => {
+  const init = async () => {
     // Corner Theme Toggler Link setup
     document.querySelector('#theme-toggle-btn')?.addEventListener('click', () => {
       (window as any).toggleTheme();
@@ -86,7 +86,13 @@ import AnalyticsDashboard from '../../components/AnalyticsDashboard';
 
     // 3. Set up event listeners
     setupEvents();
-  });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 
   // Load Profile from DB
   async function loadUserProfile() {

@@ -33,6 +33,19 @@ const { title = 'AI Job Tracker' } = Astro.props;
 				} else {
 					document.documentElement.classList.remove('dark');
 				}
+
+				window.toggleTheme = function() {
+					const html = document.documentElement;
+					const isDark = html.classList.contains('dark');
+					if (isDark) {
+						html.classList.remove('dark');
+						localStorage.setItem('theme', 'light');
+					} else {
+						html.classList.add('dark');
+						localStorage.setItem('theme', 'dark');
+					}
+					window.dispatchEvent(new Event('theme-change'));
+				};
 			})();
 		</script>
 	</head>
@@ -87,21 +100,6 @@ const { title = 'AI Job Tracker' } = Astro.props;
 						setTimeout(() => toast.remove(), 300);
 					}
 				}, 4000);
-			};
-
-			// Global Theme Toggle Function
-			(window as any).toggleTheme = function() {
-				const html = document.documentElement;
-				const isDark = html.classList.contains('dark');
-				if (isDark) {
-					html.classList.remove('dark');
-					localStorage.setItem('theme', 'light');
-				} else {
-					html.classList.add('dark');
-					localStorage.setItem('theme', 'dark');
-				}
-				// Fire event for potential theme change updates in page components
-				window.dispatchEvent(new Event('theme-change'));
 			};
 		</script>
 	</body>
